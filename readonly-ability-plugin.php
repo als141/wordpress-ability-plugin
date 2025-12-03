@@ -345,8 +345,12 @@ add_action( 'wp_abilities_api_init', static function () {
 			} elseif ( isset( $input['slug'] ) ) {
 				$post = get_page_by_path( sanitize_title( $input['slug'] ), OBJECT, 'post' );
 			}
-			if ( ! $post || 'publish' !== $post->post_status ) {
+			if ( ! $post ) {
 				return new \WP_Error( 'not_found', '記事が見つかりません。' );
+			}
+			// 公開以外（下書き・非公開など）は、閲覧権限のあるユーザーのみ許可する。
+			if ( 'publish' !== $post->post_status && ! current_user_can( 'read_post', $post->ID ) ) {
+				return new \WP_Error( 'forbidden', 'この記事を閲覧する権限がありません。' );
 			}
 
 			$include = isset( $input['include_fields'] ) && is_array( $input['include_fields'] ) ? $input['include_fields'] : array();
