@@ -44,16 +44,21 @@ function wp_mcp_register_tools() {
 			'required' => array( 'category_id' ),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'post_id'   => array( 'type' => 'integer' ),
-					'title'     => array( 'type' => 'string' ),
-					'date'      => array( 'type' => 'string' ),
-					'modified'  => array( 'type' => 'string' ),
-					'word_count'=> array( 'type' => 'integer' ),
-					'status'    => array( 'type' => 'string' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'post_id'   => array( 'type' => 'integer' ),
+							'title'     => array( 'type' => 'string' ),
+							'date'      => array( 'type' => 'string' ),
+							'modified'  => array( 'type' => 'string' ),
+							'word_count'=> array( 'type' => 'integer' ),
+							'status'    => array( 'type' => 'string' ),
+						),
+					),
 				),
 			),
 		),
@@ -92,18 +97,20 @@ function wp_mcp_register_tools() {
 			while ( $q->have_posts() ) {
 				$q->the_post();
 				$post = get_post();
+				$date = get_the_date( DATE_ATOM, $post );
+				$modified = get_the_modified_date( DATE_ATOM, $post );
 				$items[] = array(
-					'post_id'    => $post->ID,
-					'title'      => get_the_title( $post ),
-					'date'       => get_the_date( DATE_ATOM, $post ),
-					'modified'   => get_the_modified_date( DATE_ATOM, $post ),
-					'word_count' => wp_mcp_content_word_count( $post->post_content ),
-					'status'     => $post->post_status,
+					'post_id'    => (int) $post->ID,
+					'title'      => wp_mcp_string_value( get_the_title( $post ) ),
+					'date'       => $date ? $date : '',
+					'modified'   => $modified ? $modified : '',
+					'word_count' => (int) wp_mcp_content_word_count( $post->post_content ),
+					'status'     => wp_mcp_string_value( $post->post_status ),
 				);
 			}
 			wp_reset_postdata();
 
-			return $items;
+			return array( 'items' => $items );
 		},
 	) );
 
@@ -122,14 +129,19 @@ function wp_mcp_register_tools() {
 			'required' => array( 'post_id' ),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'blockName'   => array( 'type' => array( 'string', 'null' ) ),
-					'attrs'       => array( 'type' => 'object' ),
-					'innerBlocks' => array( 'type' => 'array' ),
-					'innerHTML'   => array( 'type' => 'string' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'blockName'   => array( 'type' => array( 'string', 'null' ) ),
+							'attrs'       => array( 'type' => 'object' ),
+							'innerBlocks' => array( 'type' => 'array' ),
+							'innerHTML'   => array( 'type' => 'string' ),
+						),
+					),
 				),
 			),
 		),
@@ -148,7 +160,7 @@ function wp_mcp_register_tools() {
 			}
 
 			$blocks = parse_blocks( $post->post_content );
-			return wp_mcp_map_block_structure( $blocks );
+			return array( 'items' => wp_mcp_map_block_structure( $blocks ) );
 		},
 	) );
 
@@ -295,9 +307,9 @@ function wp_mcp_register_tools() {
 			}
 
 			return array(
-				'post_id'         => $post->ID,
-				'raw_content'     => $post->post_content,
-				'rendered_content'=> apply_filters( 'the_content', $post->post_content ),
+				'post_id'         => (int) $post->ID,
+				'raw_content'     => wp_mcp_string_value( $post->post_content ),
+				'rendered_content'=> wp_mcp_string_value( apply_filters( 'the_content', $post->post_content ) ),
 			);
 		},
 	) );
@@ -322,13 +334,18 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'block_name' => array( 'type' => 'string' ),
-					'count'      => array( 'type' => 'integer' ),
-					'percentage' => array( 'type' => 'number' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'block_name' => array( 'type' => 'string' ),
+							'count'      => array( 'type' => 'integer' ),
+							'percentage' => array( 'type' => 'number' ),
+						),
+					),
 				),
 			),
 		),
@@ -374,7 +391,7 @@ function wp_mcp_register_tools() {
 				);
 			}
 
-			return $results;
+			return array( 'items' => $results );
 		},
 	) );
 
@@ -414,8 +431,8 @@ function wp_mcp_register_tools() {
 					'fontSizes'    => isset( $settings['typography']['fontSizes'] ) ? $settings['typography']['fontSizes'] : array(),
 					'custom'       => isset( $styles['typography'] ) ? $styles['typography'] : array(),
 				),
-				'spacing' => isset( $settings['spacing'] ) ? $settings['spacing'] : array(),
-				'layout'  => isset( $settings['layout'] ) ? $settings['layout'] : array(),
+				'spacing' => wp_mcp_object_value( isset( $settings['spacing'] ) ? $settings['spacing'] : array() ),
+				'layout'  => wp_mcp_object_value( isset( $settings['layout'] ) ? $settings['layout'] : array() ),
 			);
 		},
 	) );
@@ -431,15 +448,20 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'name'        => array( 'type' => 'string' ),
-					'title'       => array( 'type' => 'string' ),
-					'description' => array( 'type' => 'string' ),
-					'content'     => array( 'type' => 'string' ),
-					'categories'  => array( 'type' => 'array' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'name'        => array( 'type' => 'string' ),
+							'title'       => array( 'type' => 'string' ),
+							'description' => array( 'type' => 'string' ),
+							'content'     => array( 'type' => 'string' ),
+							'categories'  => array( 'type' => 'array' ),
+						),
+					),
 				),
 			),
 		),
@@ -470,7 +492,7 @@ function wp_mcp_register_tools() {
 				);
 			}
 
-			return $results;
+			return array( 'items' => $results );
 		},
 	) );
 
@@ -490,14 +512,19 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id'      => array( 'type' => 'integer' ),
-					'title'   => array( 'type' => 'string' ),
-					'content' => array( 'type' => 'string' ),
-					'status'  => array( 'type' => 'string' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'id'      => array( 'type' => 'integer' ),
+							'title'   => array( 'type' => 'string' ),
+							'content' => array( 'type' => 'string' ),
+							'status'  => array( 'type' => 'string' ),
+						),
+					),
 				),
 			),
 		),
@@ -530,7 +557,7 @@ function wp_mcp_register_tools() {
 				);
 			}
 
-			return $items;
+			return array( 'items' => $items );
 		},
 	) );
 
@@ -570,13 +597,19 @@ function wp_mcp_register_tools() {
 				$data = $regulations;
 			}
 
+			$heading_rules = ( isset( $data['heading_rules'] ) && is_array( $data['heading_rules'] ) ) ? $data['heading_rules'] : array();
+			$required_sections = ( isset( $data['required_sections'] ) && is_array( $data['required_sections'] ) ) ? $data['required_sections'] : array();
+			$allowed_boxes = ( isset( $data['allowed_boxes'] ) && is_array( $data['allowed_boxes'] ) ) ? $data['allowed_boxes'] : array();
+			$color_scheme = ( isset( $data['color_scheme'] ) && is_array( $data['color_scheme'] ) ) ? $data['color_scheme'] : array();
+			$formatting_rules = ( isset( $data['formatting_rules'] ) && is_array( $data['formatting_rules'] ) ) ? $data['formatting_rules'] : array();
+
 			return array(
-				'heading_rules'     => isset( $data['heading_rules'] ) ? $data['heading_rules'] : array(),
-				'required_sections' => isset( $data['required_sections'] ) ? $data['required_sections'] : array(),
-				'allowed_boxes'     => isset( $data['allowed_boxes'] ) ? $data['allowed_boxes'] : array(),
-				'color_scheme'      => isset( $data['color_scheme'] ) ? $data['color_scheme'] : array(),
-				'formatting_rules'  => isset( $data['formatting_rules'] ) ? $data['formatting_rules'] : array(),
-				'configured'        => $configured,
+				'heading_rules'     => wp_mcp_object_value( $heading_rules ),
+				'required_sections' => array_values( $required_sections ),
+				'allowed_boxes'     => array_values( $allowed_boxes ),
+				'color_scheme'      => wp_mcp_object_value( $color_scheme ),
+				'formatting_rules'  => wp_mcp_object_value( $formatting_rules ),
+				'configured'        => (bool) $configured,
 			);
 		},
 	) );
@@ -661,9 +694,9 @@ function wp_mcp_register_tools() {
 			$preview_url = function_exists( 'get_preview_post_link' ) ? get_preview_post_link( $post_id ) : get_permalink( $post_id );
 
 			return array(
-				'post_id'    => $post_id,
-				'edit_url'   => $edit_url ? $edit_url : '',
-				'preview_url'=> $preview_url ? $preview_url : '',
+				'post_id'    => (int) $post_id,
+				'edit_url'   => $edit_url ? wp_mcp_string_value( $edit_url ) : '',
+				'preview_url'=> $preview_url ? wp_mcp_string_value( $preview_url ) : '',
 			);
 		},
 	) );
@@ -719,8 +752,8 @@ function wp_mcp_register_tools() {
 
 			return array(
 				'success'     => true,
-				'post_id'     => $post_id,
-				'modified_at' => get_post_modified_time( DATE_ATOM, true, $post_id ),
+				'post_id'     => (int) $post_id,
+				'modified_at' => wp_mcp_string_value( get_post_modified_time( DATE_ATOM, true, $post_id ) ),
 			);
 		},
 	) );
@@ -827,8 +860,8 @@ function wp_mcp_register_tools() {
 
 			return array(
 				'success'       => true,
-				'published_url' => get_permalink( $post_id ),
-				'published_at'  => get_post_time( DATE_ATOM, true, $post_id ),
+				'published_url' => wp_mcp_string_value( get_permalink( $post_id ) ),
+				'published_at'  => wp_mcp_string_value( get_post_time( DATE_ATOM, true, $post_id ) ),
 			);
 		},
 	) );
@@ -1087,8 +1120,8 @@ function wp_mcp_register_tools() {
 
 			return array(
 				'score'             => max( 0, $score ),
-				'keyword_density'   => $keyword_density,
-				'heading_structure' => $heading_counts,
+				'keyword_density'   => wp_mcp_object_value( $keyword_density ),
+				'heading_structure' => wp_mcp_object_value( $heading_counts ),
 				'issues'            => $issues,
 				'recommendations'   => $recommendations,
 			);
@@ -1114,18 +1147,23 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id'        => array( 'type' => 'integer' ),
-					'url'       => array( 'type' => 'string' ),
-					'title'     => array( 'type' => 'string' ),
-					'alt'       => array( 'type' => 'string' ),
-					'caption'   => array( 'type' => 'string' ),
-					'width'     => array( 'type' => 'integer' ),
-					'height'    => array( 'type' => 'integer' ),
-					'mime_type' => array( 'type' => 'string' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'id'        => array( 'type' => 'integer' ),
+							'url'       => array( 'type' => 'string' ),
+							'title'     => array( 'type' => 'string' ),
+							'alt'       => array( 'type' => 'string' ),
+							'caption'   => array( 'type' => 'string' ),
+							'width'     => array( 'type' => 'integer' ),
+							'height'    => array( 'type' => 'integer' ),
+							'mime_type' => array( 'type' => 'string' ),
+						),
+					),
 				),
 			),
 		),
@@ -1159,19 +1197,20 @@ function wp_mcp_register_tools() {
 			$items = array();
 			foreach ( $attachments as $attachment ) {
 				$meta = wp_get_attachment_metadata( $attachment->ID );
+				$url = wp_get_attachment_url( $attachment->ID );
 				$items[] = array(
-					'id'        => $attachment->ID,
-					'url'       => wp_get_attachment_url( $attachment->ID ),
-					'title'     => $attachment->post_title,
-					'alt'       => get_post_meta( $attachment->ID, '_wp_attachment_image_alt', true ),
-					'caption'   => $attachment->post_excerpt,
+					'id'        => (int) $attachment->ID,
+					'url'       => $url ? wp_mcp_string_value( $url ) : '',
+					'title'     => wp_mcp_string_value( $attachment->post_title ),
+					'alt'       => wp_mcp_string_value( get_post_meta( $attachment->ID, '_wp_attachment_image_alt', true ) ),
+					'caption'   => wp_mcp_string_value( $attachment->post_excerpt ),
 					'width'     => isset( $meta['width'] ) ? (int) $meta['width'] : 0,
 					'height'    => isset( $meta['height'] ) ? (int) $meta['height'] : 0,
-					'mime_type' => $attachment->post_mime_type,
+					'mime_type' => wp_mcp_string_value( $attachment->post_mime_type ),
 				);
 			}
 
-			return $items;
+			return array( 'items' => $items );
 		},
 	) );
 
@@ -1272,10 +1311,11 @@ function wp_mcp_register_tools() {
 			}
 
 			$meta = wp_get_attachment_metadata( $attachment_id );
+			$url = wp_get_attachment_url( $attachment_id );
 
 			return array(
-				'media_id' => $attachment_id,
-				'url'      => wp_get_attachment_url( $attachment_id ),
+				'media_id' => (int) $attachment_id,
+				'url'      => $url ? wp_mcp_string_value( $url ) : '',
 				'width'    => isset( $meta['width'] ) ? (int) $meta['width'] : 0,
 				'height'   => isset( $meta['height'] ) ? (int) $meta['height'] : 0,
 			);
@@ -1339,16 +1379,21 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id'          => array( 'type' => 'integer' ),
-					'name'        => array( 'type' => 'string' ),
-					'slug'        => array( 'type' => 'string' ),
-					'description' => array( 'type' => 'string' ),
-					'parent'      => array( 'type' => 'integer' ),
-					'count'       => array( 'type' => 'integer' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'id'          => array( 'type' => 'integer' ),
+							'name'        => array( 'type' => 'string' ),
+							'slug'        => array( 'type' => 'string' ),
+							'description' => array( 'type' => 'string' ),
+							'parent'      => array( 'type' => 'integer' ),
+							'count'       => array( 'type' => 'integer' ),
+						),
+					),
 				),
 			),
 		),
@@ -1368,16 +1413,16 @@ function wp_mcp_register_tools() {
 			$items = array();
 			foreach ( $categories as $category ) {
 				$items[] = array(
-					'id'          => $category->term_id,
-					'name'        => $category->name,
-					'slug'        => $category->slug,
-					'description' => $category->description,
-					'parent'      => $category->parent,
-					'count'       => $category->count,
+					'id'          => (int) $category->term_id,
+					'name'        => wp_mcp_string_value( $category->name ),
+					'slug'        => wp_mcp_string_value( $category->slug ),
+					'description' => wp_mcp_string_value( $category->description ),
+					'parent'      => (int) $category->parent,
+					'count'       => (int) $category->count,
 				);
 			}
 
-			return $items;
+			return array( 'items' => $items );
 		},
 	) );
 
@@ -1398,14 +1443,19 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'id'    => array( 'type' => 'integer' ),
-					'name'  => array( 'type' => 'string' ),
-					'slug'  => array( 'type' => 'string' ),
-					'count' => array( 'type' => 'integer' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'id'    => array( 'type' => 'integer' ),
+							'name'  => array( 'type' => 'string' ),
+							'slug'  => array( 'type' => 'string' ),
+							'count' => array( 'type' => 'integer' ),
+						),
+					),
 				),
 			),
 		),
@@ -1428,14 +1478,14 @@ function wp_mcp_register_tools() {
 			$items = array();
 			foreach ( $tags as $tag ) {
 				$items[] = array(
-					'id'    => $tag->term_id,
-					'name'  => $tag->name,
-					'slug'  => $tag->slug,
-					'count' => $tag->count,
+					'id'    => (int) $tag->term_id,
+					'name'  => wp_mcp_string_value( $tag->name ),
+					'slug'  => wp_mcp_string_value( $tag->slug ),
+					'count' => (int) $tag->count,
 				);
 			}
 
-			return $items;
+			return array( 'items' => $items );
 		},
 	) );
 
@@ -1501,8 +1551,8 @@ function wp_mcp_register_tools() {
 
 			return array(
 				'term_id' => (int) $result['term_id'],
-				'name'    => $name,
-				'slug'    => isset( $result['slug'] ) ? $result['slug'] : $slug,
+				'name'    => wp_mcp_string_value( $name ),
+				'slug'    => wp_mcp_string_value( isset( $result['slug'] ) ? $result['slug'] : $slug ),
 			);
 		},
 	) );
@@ -1555,16 +1605,21 @@ function wp_mcp_register_tools() {
 			),
 		),
 		'output_schema' => array(
-			'type'  => 'array',
-			'items' => array(
-				'type'       => 'object',
-				'properties' => array(
-					'name'         => array( 'type' => 'string' ),
-					'label'        => array( 'type' => 'string' ),
-					'description'  => array( 'type' => 'string' ),
-					'rest_base'    => array( 'type' => 'string' ),
-					'hierarchical' => array( 'type' => 'boolean' ),
-					'has_archive'  => array( 'type' => 'boolean' ),
+			'type'       => 'object',
+			'properties' => array(
+				'items' => array(
+					'type'  => 'array',
+					'items' => array(
+						'type'       => 'object',
+						'properties' => array(
+							'name'         => array( 'type' => 'string' ),
+							'label'        => array( 'type' => 'string' ),
+							'description'  => array( 'type' => 'string' ),
+							'rest_base'    => array( 'type' => 'string' ),
+							'hierarchical' => array( 'type' => 'boolean' ),
+							'has_archive'  => array( 'type' => 'boolean' ),
+						),
+					),
 				),
 			),
 		),
@@ -1579,17 +1634,18 @@ function wp_mcp_register_tools() {
 
 			$items = array();
 			foreach ( $post_types as $post_type ) {
+				$rest_base = is_string( $post_type->rest_base ) ? $post_type->rest_base : '';
 				$items[] = array(
-					'name'         => $post_type->name,
-					'label'        => $post_type->label,
-					'description'  => $post_type->description,
-					'rest_base'    => $post_type->rest_base,
+					'name'         => wp_mcp_string_value( $post_type->name ),
+					'label'        => wp_mcp_string_value( $post_type->label ),
+					'description'  => wp_mcp_string_value( $post_type->description ),
+					'rest_base'    => $rest_base,
 					'hierarchical' => (bool) $post_type->hierarchical,
 					'has_archive'  => (bool) $post_type->has_archive,
 				);
 			}
 
-			return $items;
+			return array( 'items' => $items );
 		},
 	) );
 }

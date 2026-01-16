@@ -54,9 +54,9 @@ if ( ! function_exists( 'wp_mcp_map_block_structure' ) ) {
 		foreach ( $blocks as $block ) {
 			$mapped[] = array(
 				'blockName'   => isset( $block['blockName'] ) ? $block['blockName'] : null,
-				'attrs'       => isset( $block['attrs'] ) ? $block['attrs'] : array(),
+				'attrs'       => wp_mcp_object_value( isset( $block['attrs'] ) ? $block['attrs'] : array() ),
 				'innerBlocks' => wp_mcp_map_block_structure( isset( $block['innerBlocks'] ) ? $block['innerBlocks'] : array() ),
-				'innerHTML'   => isset( $block['innerHTML'] ) ? $block['innerHTML'] : '',
+				'innerHTML'   => wp_mcp_string_value( isset( $block['innerHTML'] ) ? $block['innerHTML'] : '' ),
 			);
 		}
 
@@ -126,5 +126,38 @@ if ( ! function_exists( 'wp_mcp_ensure_media_includes' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/media.php';
 		require_once ABSPATH . 'wp-admin/includes/image.php';
+	}
+}
+
+if ( ! function_exists( 'wp_mcp_string_value' ) ) {
+	function wp_mcp_string_value( $value ) {
+		if ( is_scalar( $value ) ) {
+			return (string) $value;
+		}
+
+		return '';
+	}
+}
+
+if ( ! function_exists( 'wp_mcp_int_value' ) ) {
+	function wp_mcp_int_value( $value ) {
+		return is_numeric( $value ) ? (int) $value : 0;
+	}
+}
+
+if ( ! function_exists( 'wp_mcp_object_value' ) ) {
+	function wp_mcp_object_value( $value ) {
+		if ( $value instanceof stdClass ) {
+			return $value;
+		}
+
+		if ( is_array( $value ) ) {
+			if ( empty( $value ) ) {
+				return new stdClass();
+			}
+			return $value;
+		}
+
+		return new stdClass();
 	}
 }
