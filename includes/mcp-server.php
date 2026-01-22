@@ -1,8 +1,15 @@
 <?php
+/**
+ * MCP Server initialization with SaaS authentication support.
+ *
+ * @package WP_MCP
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	return;
 }
+
+use WP_MCP\SaaS_Auth\SaaS_Auth_Provider;
 
 add_action( 'mcp_adapter_init', static function ( $adapter ) {
 	if ( ! $adapter || ! class_exists( '\\WP\\MCP\\Core\\McpAdapter' ) ) {
@@ -15,10 +22,18 @@ add_action( 'mcp_adapter_init', static function ( $adapter ) {
 	$server_route = apply_filters( 'wp_mcp_server_route', 'mcp-adapter-default-server' );
 	$transport_class = null;
 
+	// Determine transport class.
 	if ( class_exists( 'WP\\MCP\\Transport\\HttpTransport' ) ) {
 		$transport_class = 'WP\\MCP\\Transport\\HttpTransport';
 	} elseif ( class_exists( 'WP\\MCP\\Transport\\Http\\RestTransport' ) ) {
 		$transport_class = 'WP\\MCP\\Transport\\Http\\RestTransport';
+	}
+
+	// Configure SaaS authentication permission callback.
+	$transport_permission_callback = null;
+	if ( class_exists( SaaS_Auth_Provider::class ) ) {
+		$auth_provider = SaaS_Auth_Provider::instance();
+		$transport_permission_callback = array( $auth_provider, 'check_permission' );
 	}
 
 	$tools = array(
@@ -93,7 +108,8 @@ add_action( 'mcp_adapter_init', static function ( $adapter ) {
 			null,
 			$tools,
 			$resources,
-			$prompts
+			$prompts,
+			$transport_permission_callback
 		);
 		if ( is_wp_error( $result ) ) {
 			error_log( 'WP MCP: server creation failed: ' . $result->get_error_message() );

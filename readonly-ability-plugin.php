@@ -144,4 +144,22 @@ require_once __DIR__ . '/includes/abilities/categories.php';
 require_once __DIR__ . '/includes/abilities/tools.php';
 require_once __DIR__ . '/includes/abilities/resources.php';
 require_once __DIR__ . '/includes/abilities/prompts.php';
+
+// Load SaaS Authentication classes.
+require_once __DIR__ . '/includes/saas-auth/class-saas-auth-provider.php';
+require_once __DIR__ . '/includes/saas-auth/class-api-key-manager.php';
+require_once __DIR__ . '/includes/saas-auth/class-oauth-metadata.php';
+require_once __DIR__ . '/includes/saas-auth/class-admin-settings.php';
+
+// Initialize SaaS Authentication components.
+WP_MCP\SaaS_Auth\SaaS_Auth_Provider::instance();
+WP_MCP\SaaS_Auth\API_Key_Manager::instance();
+WP_MCP\SaaS_Auth\OAuth_Metadata::instance();
+if ( is_admin() ) {
+	WP_MCP\SaaS_Auth\Admin_Settings::instance();
+}
+
 require_once __DIR__ . '/includes/mcp-server.php';
+
+// Flush rewrite rules on activation for .well-known endpoints.
+register_activation_hook( __FILE__, array( 'WP_MCP\\SaaS_Auth\\OAuth_Metadata', 'flush_rewrite_rules' ) );
