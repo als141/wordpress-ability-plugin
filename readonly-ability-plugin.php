@@ -155,9 +155,7 @@ require_once __DIR__ . '/includes/saas-auth/class-admin-settings.php';
 WP_MCP\SaaS_Auth\SaaS_Auth_Provider::instance();
 WP_MCP\SaaS_Auth\API_Key_Manager::instance();
 WP_MCP\SaaS_Auth\OAuth_Metadata::instance();
-if ( is_admin() ) {
-	WP_MCP\SaaS_Auth\Admin_Settings::instance();
-}
+WP_MCP\SaaS_Auth\Admin_Settings::instance(); // Must be initialized outside is_admin() for REST routes.
 
 require_once __DIR__ . '/includes/mcp-server.php';
 
