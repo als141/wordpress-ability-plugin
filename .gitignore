@@ -1,3 +1,35 @@
+# Build artifacts
 *.zip
+build/
+dist/
+
+# Dependencies (included in release ZIP, not in repo)
+# vendor/ is tracked for development convenience
+
+# Node
 node_modules/
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Logs
+*.log
+debug.log
+
+# Environment
+.env
+.env.local
+
+# Test files
+phpunit.xml
+.phpunit.result.cache
+coverage/
+
+# Composer dev dependencies markers
+composer.lock
