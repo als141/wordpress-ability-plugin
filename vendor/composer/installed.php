@@ -5,7 +5,7 @@
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
-        'reference' => 'e49bb2d256ea996732f94119d5c0b5edb967413b',
+        'reference' => 'aad28629b11cc2207c87f56acb0ec70e938969fc',
         'name' => 'example/wordpress-mcp-ability-plugin',
         'dev' => true,
     ),
@@ -25,7 +25,7 @@
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
-            'reference' => 'e49bb2d256ea996732f94119d5c0b5edb967413b',
+            'reference' => 'aad28629b11cc2207c87f56acb0ec70e938969fc',
             'dev_requirement' => false,
         ),
         'wordpress/abilities-api' => array(

@@ -495,9 +495,9 @@ class SaaS_Auth_Provider {
 	 * Check rate limiting.
 	 *
 	 * @param array $auth_result Authentication result.
-	 * @return true|WP_Error
+	 * @return bool|WP_Error True on success, WP_Error on rate limit exceeded.
 	 */
-	private function check_rate_limit( array $auth_result ): true|WP_Error {
+	private function check_rate_limit( array $auth_result ): bool|WP_Error {
 		$settings   = $this->get_settings();
 		$user_id    = $auth_result['user_id'] ?? 0;
 		$client_id  = $auth_result['client_id'] ?? 'default';
