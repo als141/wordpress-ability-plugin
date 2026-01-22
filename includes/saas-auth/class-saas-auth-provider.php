@@ -387,14 +387,35 @@ class SaaS_Auth_Provider {
 			$signature = null;
 		}
 
-		// Find user by API key.
+		$api_key_hash = hash( 'sha256', $api_key );
+
+		// Find user by API key (keys are stored as arrays).
 		$users = get_users( array(
-			'meta_key'   => self::USER_API_KEY_META,
-			'meta_value' => hash( 'sha256', $api_key ),
-			'number'     => 1,
+			'meta_key'     => self::USER_API_KEY_META,
+			'meta_compare' => 'EXISTS',
 		) );
 
-		if ( empty( $users ) ) {
+		$found_user     = null;
+		$found_key_id   = null;
+		$found_key_data = null;
+
+		foreach ( $users as $user ) {
+			$key_hashes = get_user_meta( $user->ID, self::USER_API_KEY_META, true );
+
+			if ( ! is_array( $key_hashes ) ) {
+				continue;
+			}
+
+			foreach ( $key_hashes as $key_id => $stored_hash ) {
+				if ( hash_equals( $stored_hash, $api_key_hash ) ) {
+					$found_user   = $user;
+					$found_key_id = $key_id;
+					break 2;
+				}
+			}
+		}
+
+		if ( ! $found_user ) {
 			return new WP_Error(
 				'invalid_api_key',
 				__( 'Invalid API key.', 'wp-mcp' ),
@@ -402,34 +423,35 @@ class SaaS_Auth_Provider {
 			);
 		}
 
-		$user     = $users[0];
-		$key_data = get_user_meta( $user->ID, self::USER_API_KEY_META . '_data', true );
+		$all_key_data = get_user_meta( $found_user->ID, self::USER_API_KEY_META . '_data', true );
 
-		if ( empty( $key_data ) ) {
+		if ( ! is_array( $all_key_data ) || ! isset( $all_key_data[ $found_key_id ] ) ) {
 			return new WP_Error( 'api_key_data_missing', 'API key data not found.' );
 		}
 
+		$found_key_data = $all_key_data[ $found_key_id ];
+
 		// Check if key is active.
-		if ( isset( $key_data['active'] ) && ! $key_data['active'] ) {
+		if ( isset( $found_key_data['active'] ) && ! $found_key_data['active'] ) {
 			return new WP_Error( 'api_key_inactive', 'API key is inactive.' );
 		}
 
 		// If signature is provided, verify HMAC.
 		if ( null !== $signature && $request ) {
-			$secret = $key_data['secret'] ?? '';
+			$secret = $found_key_data['secret'] ?? '';
 			if ( ! $this->verify_hmac_signature( $request, $secret, $signature ) ) {
 				return new WP_Error( 'invalid_signature', 'HMAC signature verification failed.' );
 			}
 		}
 
 		// Update last used timestamp.
-		$key_data['last_used'] = time();
-		update_user_meta( $user->ID, self::USER_API_KEY_META . '_data', $key_data );
+		$all_key_data[ $found_key_id ]['last_used'] = time();
+		update_user_meta( $found_user->ID, self::USER_API_KEY_META . '_data', $all_key_data );
 
 		return array(
-			'user_id'   => $user->ID,
-			'scopes'    => $key_data['scopes'] ?? array( 'read' ),
-			'client_id' => $key_data['client_id'] ?? '',
+			'user_id'   => $found_user->ID,
+			'scopes'    => $found_key_data['scopes'] ?? array( 'read' ),
+			'client_id' => $found_key_data['client_id'] ?? $found_key_id,
 			'auth_type' => 'api_key',
 		);
 	}
@@ -443,29 +465,66 @@ class SaaS_Auth_Provider {
 	private function authenticate_basic( string $decoded ): array|WP_Error {
 		list( $api_key, $secret ) = explode( ':', $decoded, 2 );
 
-		// Find user by API key.
+		$api_key_hash = hash( 'sha256', $api_key );
+
+		// Find user by API key (keys are stored as arrays).
 		$users = get_users( array(
-			'meta_key'   => self::USER_API_KEY_META,
-			'meta_value' => hash( 'sha256', $api_key ),
-			'number'     => 1,
+			'meta_key'     => self::USER_API_KEY_META,
+			'meta_compare' => 'EXISTS',
 		) );
 
-		if ( empty( $users ) ) {
+		$found_user    = null;
+		$found_key_id  = null;
+		$found_key_data = null;
+
+		foreach ( $users as $user ) {
+			$key_hashes = get_user_meta( $user->ID, self::USER_API_KEY_META, true );
+
+			if ( ! is_array( $key_hashes ) ) {
+				continue;
+			}
+
+			// Check if any of the user's API key hashes match.
+			foreach ( $key_hashes as $key_id => $stored_hash ) {
+				if ( hash_equals( $stored_hash, $api_key_hash ) ) {
+					$found_user   = $user;
+					$found_key_id = $key_id;
+					break 2;
+				}
+			}
+		}
+
+		if ( ! $found_user ) {
 			return new WP_Error( 'invalid_credentials', 'Invalid API credentials.' );
 		}
 
-		$user     = $users[0];
-		$key_data = get_user_meta( $user->ID, self::USER_API_KEY_META . '_data', true );
+		// Get key data.
+		$all_key_data = get_user_meta( $found_user->ID, self::USER_API_KEY_META . '_data', true );
+
+		if ( ! is_array( $all_key_data ) || ! isset( $all_key_data[ $found_key_id ] ) ) {
+			return new WP_Error( 'key_data_missing', 'API key data not found.' );
+		}
+
+		$found_key_data = $all_key_data[ $found_key_id ];
+
+		// Check if key is active.
+		if ( isset( $found_key_data['active'] ) && ! $found_key_data['active'] ) {
+			return new WP_Error( 'api_key_inactive', 'API key is inactive.' );
+		}
 
 		// Verify secret.
-		if ( ! isset( $key_data['secret'] ) || ! hash_equals( $key_data['secret'], $secret ) ) {
+		if ( ! isset( $found_key_data['secret'] ) || ! hash_equals( $found_key_data['secret'], $secret ) ) {
 			return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
 		}
 
+		// Update last used timestamp.
+		$all_key_data[ $found_key_id ]['last_used'] = time();
+		update_user_meta( $found_user->ID, self::USER_API_KEY_META . '_data', $all_key_data );
+
 		return array(
-			'user_id'   => $user->ID,
-			'scopes'    => $key_data['scopes'] ?? array( 'read' ),
-			'client_id' => $key_data['client_id'] ?? '',
+			'user_id'   => $found_user->ID,
+			'scopes'    => $found_key_data['scopes'] ?? array( 'read' ),
+			'client_id' => $found_key_data['client_id'] ?? $found_key_id,
 			'auth_type' => 'basic',
 		);
 	}
@@ -627,6 +686,68 @@ class SaaS_Auth_Provider {
 				'permission_callback' => '__return_true',
 			)
 		);
+
+		// Debug endpoint to test authentication.
+		register_rest_route(
+			'wp-mcp/v1',
+			'/auth/test',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'handle_auth_test' ),
+				'permission_callback' => '__return_true',
+			)
+		);
+	}
+
+	/**
+	 * Handle authentication test request.
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response
+	 */
+	public function handle_auth_test( $request ): \WP_REST_Response {
+		$auth_header = $this->get_authorization_header();
+		$settings    = $this->get_settings();
+
+		$result = array(
+			'auth_header_received' => ! empty( $auth_header ),
+			'auth_header_type'     => '',
+			'saas_auth_enabled'    => $settings['enabled'],
+			'authentication'       => null,
+			'current_user_id'      => get_current_user_id(),
+		);
+
+		if ( ! empty( $auth_header ) ) {
+			if ( preg_match( '/^Bearer\s+/i', $auth_header ) ) {
+				$result['auth_header_type'] = 'Bearer';
+			} elseif ( preg_match( '/^Basic\s+/i', $auth_header ) ) {
+				$result['auth_header_type'] = 'Basic';
+			} elseif ( preg_match( '/^ApiKey\s+/i', $auth_header ) ) {
+				$result['auth_header_type'] = 'ApiKey';
+			} else {
+				$result['auth_header_type'] = 'Unknown';
+			}
+
+			// Try to authenticate.
+			$auth_result = $this->authenticate( $auth_header, $request );
+
+			if ( is_wp_error( $auth_result ) ) {
+				$result['authentication'] = array(
+					'success' => false,
+					'error'   => $auth_result->get_error_code(),
+					'message' => $auth_result->get_error_message(),
+				);
+			} else {
+				$result['authentication'] = array(
+					'success'   => true,
+					'user_id'   => $auth_result['user_id'] ?? 0,
+					'auth_type' => $auth_result['auth_type'] ?? '',
+					'scopes'    => $auth_result['scopes'] ?? array(),
+				);
+			}
+		}
+
+		return new \WP_REST_Response( $result, 200 );
 	}
 
 	/**
