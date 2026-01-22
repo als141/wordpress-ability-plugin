@@ -412,4 +412,39 @@ class API_Key_Manager {
 		$allowed_scopes = array( 'read', 'write', 'admin' );
 		return array_values( array_intersect( $scopes, $allowed_scopes ) );
 	}
+
+	/**
+	 * Regenerate API key for SaaS connection (internal use).
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $key_id  Key ID.
+	 * @return array|WP_Error New credentials or error.
+	 */
+	public function regenerate_key_for_saas( int $user_id, string $key_id ): array|WP_Error {
+		$keys = get_user_meta( $user_id, self::API_KEY_DATA_META, true );
+		if ( ! is_array( $keys ) || ! isset( $keys[ $key_id ] ) ) {
+			return new WP_Error( 'key_not_found', 'API key not found.' );
+		}
+
+		// Generate new key and secret.
+		$new_api_key    = $this->generate_api_key();
+		$new_api_secret = $this->generate_secret();
+		$new_key_hash   = hash( 'sha256', $new_api_key );
+
+		// Update key data.
+		$keys[ $key_id ]['key_hash'] = $new_key_hash;
+		$keys[ $key_id ]['secret']   = $new_api_secret;
+		$keys[ $key_id ]['scopes']   = array( 'read', 'write', 'admin' ); // Ensure full access.
+		update_user_meta( $user_id, self::API_KEY_DATA_META, $keys );
+
+		// Update hash lookup.
+		$key_hashes            = get_user_meta( $user_id, self::API_KEY_META, true );
+		$key_hashes[ $key_id ] = $new_key_hash;
+		update_user_meta( $user_id, self::API_KEY_META, $key_hashes );
+
+		return array(
+			'api_key'    => $new_api_key,
+			'api_secret' => $new_api_secret,
+		);
+	}
 }

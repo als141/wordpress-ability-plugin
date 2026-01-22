@@ -41,6 +41,7 @@ cp -r vendor "${DIST_DIR}/"
 [ -f "CHANGELOG.md" ] && cp CHANGELOG.md "${DIST_DIR}/"
 [ -d "assets" ] && cp -r assets "${DIST_DIR}/"
 [ -d "languages" ] && cp -r languages "${DIST_DIR}/"
+[ -d "docs" ] && cp -r docs "${DIST_DIR}/"
 
 # Remove unnecessary files from vendor
 echo "🧹 Cleaning up vendor directory..."

@@ -272,8 +272,9 @@ class SaaS_Auth_Provider {
 
 		$token_data = $tokens[ $token_hash ];
 
-		// Check expiry.
-		if ( isset( $token_data['expires_at'] ) && time() > $token_data['expires_at'] ) {
+		// Check expiry (permanent tokens have null expires_at).
+		$is_permanent = ! empty( $token_data['permanent'] ) || null === ( $token_data['expires_at'] ?? null );
+		if ( ! $is_permanent && ! empty( $token_data['expires_at'] ) && time() > $token_data['expires_at'] ) {
 			// Remove expired token.
 			unset( $tokens[ $token_hash ] );
 			update_option( 'wp_mcp_access_tokens', $tokens );

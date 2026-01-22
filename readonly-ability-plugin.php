@@ -161,5 +161,23 @@ if ( is_admin() ) {
 
 require_once __DIR__ . '/includes/mcp-server.php';
 
-// Flush rewrite rules on activation for .well-known endpoints.
-register_activation_hook( __FILE__, array( 'WP_MCP\\SaaS_Auth\\OAuth_Metadata', 'flush_rewrite_rules' ) );
+/**
+ * Plugin activation callback.
+ */
+function wp_mcp_activate_plugin(): void {
+	// Flush rewrite rules for .well-known endpoints.
+	WP_MCP\SaaS_Auth\OAuth_Metadata::flush_rewrite_rules();
+
+	// Auto-enable SaaS authentication with sensible defaults.
+	$auth_provider = WP_MCP\SaaS_Auth\SaaS_Auth_Provider::instance();
+	$settings      = $auth_provider->get_settings();
+
+	if ( ! $settings['enabled'] ) {
+		$settings['enabled']             = true;
+		$settings['require_https']       = is_ssl();
+		$settings['rate_limit_enabled']  = false;
+		$settings['audit_log_enabled']   = true;
+		$auth_provider->update_settings( $settings );
+	}
+}
+register_activation_hook( __FILE__, 'wp_mcp_activate_plugin' );
