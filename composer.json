@@ -1,14 +1,48 @@
 {
-  "name": "example/readonly-ability-plugin",
-  "description": "Sample WordPress plugin that registers a read-only ability via Abilities API and exposes it through MCP Adapter.",
+  "name": "example/wordpress-mcp-ability-plugin",
+  "description": "WordPress MCP Ability Suite - Provides MCP tools, resources, and prompts for WordPress content operations with SaaS authentication support.",
   "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "keywords": [
+    "wordpress",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "abilities-api",
+    "saas"
+  ],
   "require": {
+    "php": "^8.1",
     "wordpress/abilities-api": "^0.4 || ^0.5",
+    "wordpress/mcp-adapter": "^0.4",
     "automattic/jetpack-autoloader": "^5.0"
   },
   "autoload": {
-    "psr-4": {
-      "ReadonlyAbility\\": "src/"
+    "classmap": [
+      "includes/saas-auth/"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "automattic/jetpack-autoloader": true
+    },
+    "sort-packages": true,
+    "optimize-autoloader": true
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@composer dump-autoload"
+    ],
+    "post-update-cmd": [
+      "@composer dump-autoload"
+    ]
+  },
+  "extra": {
+    "installer-paths": {
+      "vendor/{$vendor}/{$name}/": [
+        "wordpress/abilities-api",
+        "wordpress/mcp-adapter"
+      ]
     }
   }
 }
