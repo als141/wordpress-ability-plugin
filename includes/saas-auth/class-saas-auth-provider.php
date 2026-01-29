@@ -102,7 +102,7 @@ class SaaS_Auth_Provider {
 			'jwt_issuer'               => '',
 			'token_expiry_hours'       => 24,
 			'require_https'            => true,
-			'rate_limit_enabled'       => true,
+			'rate_limit_enabled'       => false,
 			'rate_limit_requests'      => 100,
 			'rate_limit_window'        => 3600,
 			'audit_log_enabled'        => true,
@@ -138,11 +138,17 @@ class SaaS_Auth_Provider {
 
 		// If SaaS auth is not enabled, fall back to default WordPress auth.
 		if ( ! $settings['enabled'] ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[WP MCP Auth] SaaS auth is NOT enabled, falling back to is_user_logged_in()' );
+			}
 			return is_user_logged_in();
 		}
 
 		// Check HTTPS requirement.
 		if ( $settings['require_https'] && ! is_ssl() ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[WP MCP Auth] HTTPS required but request is not SSL' );
+			}
 			return new WP_Error(
 				'https_required',
 				__( 'HTTPS is required for SaaS authentication.', 'wp-mcp' ),
@@ -154,6 +160,9 @@ class SaaS_Auth_Provider {
 		$auth_header = $this->get_authorization_header();
 
 		if ( empty( $auth_header ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[WP MCP Auth] No Authorization header found. HTTP_AUTHORIZATION=' . ( $_SERVER['HTTP_AUTHORIZATION'] ?? '(not set)' ) . ', REDIRECT_HTTP_AUTHORIZATION=' . ( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '(not set)' ) );
+			}
 			// No auth header - check if user is logged in (backward compatibility).
 			if ( is_user_logged_in() ) {
 				return true;
@@ -165,10 +174,17 @@ class SaaS_Auth_Provider {
 			);
 		}
 
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( '[WP MCP Auth] Authorization header found: ' . substr( $auth_header, 0, 20 ) . '...' );
+		}
+
 		// Parse authorization header.
 		$auth_result = $this->authenticate( $auth_header, $request );
 
 		if ( is_wp_error( $auth_result ) ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( '[WP MCP Auth] Authentication failed: ' . $auth_result->get_error_code() . ' - ' . $auth_result->get_error_message() );
+			}
 			$this->log_auth_attempt( false, $auth_result->get_error_message() );
 			return $auth_result;
 		}
@@ -176,10 +192,15 @@ class SaaS_Auth_Provider {
 		// Set current user.
 		if ( isset( $auth_result['user_id'] ) ) {
 			wp_set_current_user( $auth_result['user_id'] );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				$user = wp_get_current_user();
+				error_log( '[WP MCP Auth] User set: ID=' . $auth_result['user_id'] . ', login=' . $user->user_login . ', roles=' . implode( ',', $user->roles ) . ', can_read=' . ( current_user_can( 'read' ) ? 'yes' : 'no' ) );
+			}
 		}
 
-		// Check rate limiting.
-		if ( $settings['rate_limit_enabled'] ) {
+		// Check rate limiting (skip for SaaS access_token auth - rate limiting is managed by SaaS).
+		$auth_type = $auth_result['auth_type'] ?? '';
+		if ( $settings['rate_limit_enabled'] && 'access_token' !== $auth_type ) {
 			$rate_check = $this->check_rate_limit( $auth_result );
 			if ( is_wp_error( $rate_check ) ) {
 				return $rate_check;
@@ -265,6 +286,18 @@ class SaaS_Auth_Provider {
 	private function validate_access_token( string $token ): array|WP_Error {
 		$token_hash = hash( 'sha256', $token );
 		$tokens     = get_option( 'wp_mcp_access_tokens', array() );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			$stored_hashes = array_keys( $tokens );
+			$stored_prefixes = array_map( function( $h ) { return substr( $h, 0, 16 ); }, $stored_hashes );
+			error_log( sprintf(
+				'[WP MCP Auth] validate_access_token: received_hash=%s..., token_prefix=%s..., stored_hashes=[%s], stored_count=%d',
+				substr( $token_hash, 0, 16 ),
+				substr( $token, 0, 8 ),
+				implode( ', ', $stored_prefixes ),
+				count( $tokens )
+			) );
+		}
 
 		if ( ! isset( $tokens[ $token_hash ] ) ) {
 			return new WP_Error( 'token_not_found', 'Token not found.' );

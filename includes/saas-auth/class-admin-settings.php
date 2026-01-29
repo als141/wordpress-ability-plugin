@@ -267,12 +267,22 @@ class Admin_Settings {
 	private function ensure_saas_auth_enabled(): void {
 		$auth_provider = SaaS_Auth_Provider::instance();
 		$settings      = $auth_provider->get_settings();
+		$needs_update  = false;
 
 		if ( ! $settings['enabled'] ) {
-			$settings['enabled']             = true;
-			$settings['require_https']       = is_ssl();
-			$settings['rate_limit_enabled']  = false; // Disable for SaaS.
-			$settings['audit_log_enabled']   = true;
+			$settings['enabled']           = true;
+			$settings['require_https']     = is_ssl();
+			$settings['audit_log_enabled'] = true;
+			$needs_update                  = true;
+		}
+
+		// SaaS経由ではレート制限はSaaS側で管理するため常に無効化
+		if ( $settings['rate_limit_enabled'] ) {
+			$settings['rate_limit_enabled'] = false;
+			$needs_update                   = true;
+		}
+
+		if ( $needs_update ) {
 			$auth_provider->update_settings( $settings );
 		}
 	}
@@ -327,7 +337,18 @@ class Admin_Settings {
 			'expires_at' => null, // Never expires.
 			'permanent'  => true,
 		);
-		update_option( 'wp_mcp_access_tokens', $tokens );
+		$updated = update_option( 'wp_mcp_access_tokens', $tokens );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( sprintf(
+				'[WP MCP Auth] generate_permanent_access_token: token_prefix=%s..., hash=%s..., user_id=%d, update_result=%s, total_tokens=%d',
+				substr( $access_token, 0, 8 ),
+				substr( $token_hash, 0, 16 ),
+				$user_id,
+				$updated ? 'success' : 'FAILED',
+				count( $tokens )
+			) );
+		}
 
 		return $access_token;
 	}
