@@ -1,10 +1,17 @@
 <?php
 /**
- * Plugin Name: WordPress MCP Ability Suite
- * Description: WordPress MCP Adapter tools, resources, and prompts for content operations.
- * Version: 1.0.0
- * Author: Example
- * License: GPL-2.0-or-later
+ * Plugin Name:       WordPress MCP Ability Suite
+ * Plugin URI:        https://github.com/als141/wordpress-mcp-ability-plugin
+ * Description:       Expose WordPress content operations to AI agents via Model Context Protocol (MCP) with SaaS authentication support.
+ * Version:           1.0.0
+ * Author:            als141
+ * Author URI:        https://profiles.wordpress.org/als141/
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       wordpress-mcp-ability-suite
+ * Domain Path:       /languages
+ * Requires at least: 6.0
+ * Requires PHP:      8.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

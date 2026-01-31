@@ -1,4 +1,7 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 /**
  * OAuth 2.0 Metadata Endpoints for MCP Specification Compliance.
  *

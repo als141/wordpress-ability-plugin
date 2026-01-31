@@ -1,0 +1,30 @@
+# Directories
+/.git
+/.github
+/.wordpress-org
+/build
+/docs
+/node_modules
+/tests
+
+# Files
+/.distignore
+/.gitignore
+/.gitattributes
+/.editorconfig
+/build.sh
+/composer.json
+/composer.lock
+/package.json
+/package-lock.json
+/phpunit.xml
+/phpunit.xml.dist
+/phpcs.xml
+/phpcs.xml.dist
+/Gruntfile.js
+/Makefile
+/README.md
+/CHANGELOG.md
+
+# Vendor dev files
+/vendor/bin

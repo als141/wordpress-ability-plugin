@@ -1,4 +1,7 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 /**
  * Admin Settings Page for SaaS Connection.
  *
@@ -97,6 +100,21 @@ class Admin_Settings {
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'handle_registration' ),
 				'permission_callback' => '__return_true',
+				'args'                => array(
+					'registration_code' => array(
+						'required'          => true,
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'validate_callback' => static function ( $value ) {
+							return is_string( $value ) && strlen( $value ) > 0;
+						},
+					),
+					'saas_identifier'   => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+						'default'           => '',
+					),
+				),
 			)
 		);
 
@@ -108,6 +126,16 @@ class Admin_Settings {
 				'methods'             => 'GET',
 				'callback'            => array( $this, 'handle_connection_callback' ),
 				'permission_callback' => '__return_true',
+				'args'                => array(
+					'status' => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+					'error'  => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
 			)
 		);
 	}
