@@ -1,10 +1,17 @@
 <?php
 /**
- * Plugin Name: WordPress MCP Ability Suite
- * Description: WordPress MCP Adapter tools, resources, and prompts for content operations.
- * Version: 1.0.0
- * Author: Example
- * License: GPL-2.0-or-later
+ * Plugin Name:       WordPress MCP Ability Suite
+ * Plugin URI:        https://github.com/als141/wordpress-mcp-ability-plugin
+ * Description:       Expose WordPress content operations to AI agents via Model Context Protocol (MCP) with SaaS authentication support.
+ * Version:           1.0.0
+ * Author:            als141
+ * Author URI:        https://profiles.wordpress.org/als141/
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       wordpress-mcp-ability-suite
+ * Domain Path:       /languages
+ * Requires at least: 6.0
+ * Requires PHP:      8.1
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -144,4 +151,38 @@ require_once __DIR__ . '/includes/abilities/categories.php';
 require_once __DIR__ . '/includes/abilities/tools.php';
 require_once __DIR__ . '/includes/abilities/resources.php';
 require_once __DIR__ . '/includes/abilities/prompts.php';
+
+// Load SaaS Authentication classes.
+require_once __DIR__ . '/includes/saas-auth/class-saas-auth-provider.php';
+require_once __DIR__ . '/includes/saas-auth/class-api-key-manager.php';
+require_once __DIR__ . '/includes/saas-auth/class-oauth-metadata.php';
+require_once __DIR__ . '/includes/saas-auth/class-admin-settings.php';
+
+// Initialize SaaS Authentication components.
+WP_MCP\SaaS_Auth\SaaS_Auth_Provider::instance();
+WP_MCP\SaaS_Auth\API_Key_Manager::instance();
+WP_MCP\SaaS_Auth\OAuth_Metadata::instance();
+WP_MCP\SaaS_Auth\Admin_Settings::instance(); // Must be initialized outside is_admin() for REST routes.
+
 require_once __DIR__ . '/includes/mcp-server.php';
+
+/**
+ * Plugin activation callback.
+ */
+function wp_mcp_activate_plugin(): void {
+	// Flush rewrite rules for .well-known endpoints.
+	WP_MCP\SaaS_Auth\OAuth_Metadata::flush_rewrite_rules();
+
+	// Auto-enable SaaS authentication with sensible defaults.
+	$auth_provider = WP_MCP\SaaS_Auth\SaaS_Auth_Provider::instance();
+	$settings      = $auth_provider->get_settings();
+
+	if ( ! $settings['enabled'] ) {
+		$settings['enabled']             = true;
+		$settings['require_https']       = is_ssl();
+		$settings['rate_limit_enabled']  = false;
+		$settings['audit_log_enabled']   = true;
+		$auth_provider->update_settings( $settings );
+	}
+}
+register_activation_hook( __FILE__, 'wp_mcp_activate_plugin' );

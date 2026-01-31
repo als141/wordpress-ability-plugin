@@ -1,0 +1,71 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, curl
+          tools: composer:v2
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --prefer-dist
+
+      - name: Build plugin
+        run: |
+          PLUGIN_SLUG="wordpress-mcp-ability-plugin"
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+
+          mkdir -p build/${PLUGIN_SLUG}
+
+          # Copy files
+          cp readonly-ability-plugin.php build/${PLUGIN_SLUG}/
+          cp -r includes build/${PLUGIN_SLUG}/
+          cp -r vendor build/${PLUGIN_SLUG}/
+          [ -f readme.txt ] && cp readme.txt build/${PLUGIN_SLUG}/
+          [ -f LICENSE ] && cp LICENSE build/${PLUGIN_SLUG}/
+
+          # Clean vendor
+          find build/${PLUGIN_SLUG}/vendor -type d -name ".git" -exec rm -rf {} + 2>/dev/null || true
+          find build/${PLUGIN_SLUG}/vendor -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
+          find build/${PLUGIN_SLUG}/vendor -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
+          find build/${PLUGIN_SLUG}/vendor -type f -name "*.md" -delete 2>/dev/null || true
+          find build/${PLUGIN_SLUG}/vendor -type f -name "phpunit.xml*" -delete 2>/dev/null || true
+
+          # Create ZIP
+          cd build
+          zip -r ${PLUGIN_SLUG}-${VERSION}.zip ${PLUGIN_SLUG}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/wordpress-mcp-ability-plugin-${{ steps.get_version.outputs.VERSION }}.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
