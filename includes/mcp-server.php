@@ -8,10 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @package WP_MCP
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	return;
-}
-
 use WP_MCP\SaaS_Auth\SaaS_Auth_Provider;
 
 add_action( 'mcp_adapter_init', static function ( $adapter ) {
