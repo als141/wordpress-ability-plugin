@@ -21,6 +21,8 @@
 /phpunit.xml.dist
 /phpcs.xml
 /phpcs.xml.dist
+/phpstan.neon
+/CLAUDE.md
 /Gruntfile.js
 /Makefile
 /README.md

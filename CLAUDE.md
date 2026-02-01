@@ -292,6 +292,12 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 - **PHPStan 設定**: `phpstan.neon` — level 5, WordPress stubs 対応, PHPDoc 型推論緩和あり
 - **dev 依存**: `phpstan/phpstan`, `phpstan/extension-installer`, `szepeviktor/phpstan-wordpress`
 
+### GitHub Actions CI/CD
+- **ci.yml**: push/PR 時に `lint` + `PHPStan` を自動実行。チェック失敗でマージブロック可能
+- **release.yml**: `v*` タグ push 時 → チェック通過後に ZIP ビルド → GitHub Releases にアップロード
+- **deploy.yml**: `*` タグ push 時 → チェック通過後に WordPress.org SVN デプロイ + ZIP Release
+- **フロー**: check ジョブ (`needs: check`) が通らない限り build/deploy は実行されない
+
 ## Deployment
 - **ターゲット**: WordPress.org プラグインディレクトリ
 - **デプロイ方式**: GitHub Actions (`10up/action-wordpress-plugin-deploy`)

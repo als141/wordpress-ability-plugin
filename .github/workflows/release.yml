@@ -2,6 +2,8 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*'
   workflow_dispatch:
@@ -11,7 +13,33 @@ on:
         required: true
 
 jobs:
+  check:
+    name: PHP Lint & Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, xml, curl
+          tools: composer:v2
+
+      - name: Install dependencies (with dev)
+        run: composer install --optimize-autoloader --prefer-dist
+
+      - name: PHP syntax check
+        run: composer run lint
+
+      - name: PHPStan static analysis
+        run: composer run analyse
+
   build:
+    name: Build ZIP & Create Release
+    needs: check
     runs-on: ubuntu-latest
 
     steps:
@@ -30,8 +58,12 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          else
+            # Extract version from plugin header
+            VERSION=$(grep -Po "Version:\s*\K[0-9.]+" readonly-ability-plugin.php)
+            echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           fi
 
       - name: Install dependencies
@@ -63,9 +95,12 @@ jobs:
           zip -r ${PLUGIN_SLUG}-${VERSION}.zip ${PLUGIN_SLUG}
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
+          name: v${{ steps.get_version.outputs.VERSION }}
           files: build/wordpress-mcp-ability-plugin-${{ steps.get_version.outputs.VERSION }}.zip
           generate_release_notes: true
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
