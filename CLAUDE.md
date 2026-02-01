@@ -82,7 +82,7 @@ wordpress-ability-plugin/
 │   ├── wordpress/mcp-adapter/
 │   └── jetpack-autoloader/
 ├── docs/
-│   ├── SAAS_INTEGRATION.md        # SaaS 連携ガイド (43KB)
+│   ├── APP_INTEGRATION.md         # アプリ連携実装ガイド (接続URL方式)
 │   └── EXTENSION-REQUIREMENTS.md  # 拡張要件書 (55KB)
 ├── .wordpress-org/                # WordPress.org アセット画像
 │   ├── icon-256x256.png
@@ -375,6 +375,19 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 ---
 
+## Documentation (docs/ ディレクトリ)
+
+| ファイル | 内容 | 更新タイミング |
+|---------|------|-------------|
+| `docs/APP_INTEGRATION.md` | **アプリ連携実装ガイド** — 接続URL方式の連携フロー、登録API仕様、ローカルツールラッパー方式の推奨理由（海外IPアクセス制限回避）、全25ツール・4リソース・4プロンプトの完全リファレンス、MCP クライアント実装例（Python/Node.js）、DB設計、暗号化、セキュリティ | ツール追加・削除・パラメータ変更時、認証方式変更時、連携フロー変更時に必ず更新 |
+| `docs/EXTENSION-REQUIREMENTS.md` | 拡張要件書 | 要件変更時 |
+
+### ドキュメント更新ルール
+- **ツール・リソース・プロンプトの追加/削除/変更** を行ったら、`docs/APP_INTEGRATION.md` のリファレンスセクションも必ず同期更新
+- **連携フロー（認証、登録API、接続URL形式等）** を変更したら、ドキュメントのフローセクションも更新
+- **旧 `docs/SAAS_INTEGRATION.md` は削除済み** (v1.1.0 で接続URL方式に移行)。新しいガイドは `APP_INTEGRATION.md`
+- marketing-automation リポジトリの実装パターンを参考例として記載済み
+
 ## Extension Points (カスタマイズ)
 - **カスタムツール追加**: `wp_abilities_api_init` フックで `wp_register_ability()` を呼ぶ
 - **ツールリスト変更**: `wp_mcp_tools` フィルタ
@@ -399,6 +412,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
+| 2026-02-02 | docs | `docs/SAAS_INTEGRATION.md` を削除し、`docs/APP_INTEGRATION.md` を新規作成。接続URL方式、ローカルツールラッパー方式（海外IPアクセス制限対策）、全33アビリティ完全リファレンス、MCP クライアント実装例を記載 |
 | 2026-02-02 | 1.0.2 → 1.1.0 | 複数アプリ連携対応。接続URL方式（アプリURL入力不要）。単一接続→複数名前付き連携。「SaaS」→「アプリ」UI変更。API キー上限5→20。レガシーデータ自動マイグレーション。接続状態ポーリング REST エンドポイント追加 |
 | 2026-02-01 | 1.0.1 → 1.0.2 | `declare(strict_types=1)` を全 saas-auth ファイルでファイル先頭に移動（PHP fatal error 修正） |
 | 2026-02-01 | 1.0.0 → 1.0.1 | セキュリティ＆バグ修正17件。API secret ハッシュ化、introspect認証追加、デバッグエンドポイント制限、各ツールの出力修正、CJKキーワード密度修正、OAuth メタデータ整理、authenticate_basic() の secret_hash 対応 |
