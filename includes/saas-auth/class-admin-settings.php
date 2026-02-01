@@ -123,7 +123,6 @@ class Admin_Settings {
 			$connection_id => array(
 				'connection_id'      => $connection_id,
 				'name'               => $old_connection['saas_name'] ?? '既存の連携',
-				'app_url'            => $old_url,
 				'app_name'           => $old_connection['saas_name'] ?? 'Unknown',
 				'connected_at'       => $old_connection['connected_at'] ?? time(),
 				'user_id'            => $user_id,
@@ -178,7 +177,7 @@ class Admin_Settings {
 			)
 		);
 
-		// Connection callback endpoint (redirected from app).
+		// Connection callback endpoint (kept for backward compatibility with app-initiated redirects).
 		register_rest_route(
 			'wp-mcp/v1',
 			'/connection-callback',
@@ -198,10 +197,29 @@ class Admin_Settings {
 				),
 			)
 		);
+
+		// Connection status polling endpoint (for admin UI).
+		register_rest_route(
+			'wp-mcp/v1',
+			'/connection-status/(?P<connection_id>[a-f0-9-]+)',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( $this, 'handle_connection_status' ),
+				'permission_callback' => static function () {
+					return current_user_can( 'manage_options' );
+				},
+				'args'                => array(
+					'connection_id' => array(
+						'type'              => 'string',
+						'sanitize_callback' => 'sanitize_text_field',
+					),
+				),
+			)
+		);
 	}
 
 	/**
-	 * Handle admin actions (connect/disconnect).
+	 * Handle admin actions (generate connection URL / disconnect).
 	 */
 	public function handle_actions(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -219,41 +237,29 @@ class Admin_Settings {
 			add_settings_error( 'wp_mcp', 'disconnected', '連携を解除しました。', 'updated' );
 		}
 
-		// Handle connect action.
-		if ( isset( $_POST['wp_mcp_connect'] ) && check_admin_referer( 'wp_mcp_connect' ) ) {
-			$app_url         = sanitize_url( wp_unslash( $_POST['app_url'] ?? '' ) );
+		// Handle cancel pending connection.
+		if ( isset( $_POST['wp_mcp_cancel_pending'] ) && check_admin_referer( 'wp_mcp_cancel_pending' ) ) {
+			delete_option( self::REGISTRATION_CODE_OPTION );
+			add_settings_error( 'wp_mcp', 'cancelled', '接続URLを無効化しました。', 'updated' );
+		}
+
+		// Handle generate connection URL action.
+		if ( isset( $_POST['wp_mcp_generate'] ) && check_admin_referer( 'wp_mcp_generate' ) ) {
 			$connection_name = sanitize_text_field( wp_unslash( $_POST['connection_name'] ?? '' ) );
 
-			if ( empty( $app_url ) ) {
-				add_settings_error( 'wp_mcp', 'error', 'アプリの URL を入力してください。', 'error' );
-				return;
-			}
 			if ( empty( $connection_name ) ) {
 				add_settings_error( 'wp_mcp', 'error', '連携ネームを入力してください。', 'error' );
 				return;
 			}
 
-			// Generate registration code and redirect.
-			$reg_data          = $this->generate_registration_code( $connection_name, $app_url );
-			$registration_code = $reg_data['code'];
-			$callback_url      = rest_url( 'wp-mcp/v1/connection-callback' );
-			$mcp_endpoint      = rest_url( 'mcp/mcp-adapter-default-server' );
-			$register_endpoint = rest_url( 'wp-mcp/v1/register' );
+			// Ensure auth is enabled before generating.
+			$this->ensure_auth_enabled();
 
-			$connect_url = add_query_arg(
-				array(
-					'action'            => 'wordpress_mcp_connect',
-					'site_url'          => rawurlencode( get_site_url() ),
-					'site_name'         => rawurlencode( get_bloginfo( 'name' ) ),
-					'mcp_endpoint'      => rawurlencode( $mcp_endpoint ),
-					'register_endpoint' => rawurlencode( $register_endpoint ),
-					'registration_code' => $registration_code,
-					'callback_url'      => rawurlencode( $callback_url ),
-				),
-				trailingslashit( $app_url ) . 'connect/wordpress'
-			);
+			// Generate registration code.
+			$this->generate_registration_code( $connection_name );
 
-			wp_redirect( $connect_url );
+			// Redirect back to settings page to show the connection URL.
+			wp_safe_redirect( admin_url( 'options-general.php?page=' . self::PAGE_SLUG . '&pending=1' ) );
 			exit;
 		}
 	}
@@ -262,28 +268,21 @@ class Admin_Settings {
 	 * Generate a one-time registration code for a new connection.
 	 *
 	 * @param string $connection_name User-assigned connection name.
-	 * @param string $app_url         App URL.
-	 * @return array{code: string, connection_id: string}
 	 */
-	private function generate_registration_code( string $connection_name, string $app_url ): array {
+	private function generate_registration_code( string $connection_name ): void {
 		$code          = wp_generate_password( 64, false );
 		$connection_id = wp_generate_uuid4();
 
 		$data = array(
 			'code'            => hash( 'sha256', $code ),
+			'raw_code'        => $code, // Kept temporarily for display; deleted after registration or expiry.
 			'created_at'      => time(),
 			'expires_at'      => time() + 600, // 10 minutes.
 			'user_id'         => get_current_user_id(),
 			'connection_id'   => $connection_id,
 			'connection_name' => sanitize_text_field( $connection_name ),
-			'app_url'         => sanitize_url( $app_url ),
 		);
 		update_option( self::REGISTRATION_CODE_OPTION, $data );
-
-		return array(
-			'code'          => $code,
-			'connection_id' => $connection_id,
-		);
 	}
 
 	/**
@@ -321,7 +320,6 @@ class Admin_Settings {
 
 		$connection_id   = $stored_data['connection_id'] ?? wp_generate_uuid4();
 		$connection_name = $stored_data['connection_name'] ?? ( $saas_identifier ?? 'Unknown' );
-		$app_url         = $stored_data['app_url'] ?? '';
 		$user_id         = (int) ( $stored_data['user_id'] ?? 0 );
 
 		// Ensure auth is enabled and create credentials.
@@ -345,8 +343,7 @@ class Admin_Settings {
 			array(
 				'connection_id'      => $connection_id,
 				'name'               => $connection_name,
-				'app_url'            => $app_url,
-				'app_name'           => $saas_identifier ?? 'Unknown',
+				'app_name'           => $saas_identifier ?? '',
 				'user_id'            => $user_id,
 				'access_token_hash'  => hash( 'sha256', $access_token ),
 				'api_key_id'         => $credentials['key_id'],
@@ -369,7 +366,7 @@ class Admin_Settings {
 	}
 
 	/**
-	 * Handle connection callback from app.
+	 * Handle connection callback from app (backward compatibility).
 	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return void
@@ -388,6 +385,39 @@ class Admin_Settings {
 
 		wp_redirect( $redirect_url );
 		exit;
+	}
+
+	/**
+	 * Handle connection status polling (AJAX from admin UI).
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response
+	 */
+	public function handle_connection_status( $request ): \WP_REST_Response {
+		$connection_id = $request->get_param( 'connection_id' );
+		$connections   = get_option( self::CONNECTIONS_OPTION, array() );
+
+		if ( isset( $connections[ $connection_id ] ) ) {
+			return new \WP_REST_Response( array( 'status' => 'connected' ), 200 );
+		}
+
+		// Check if registration code still exists (pending).
+		$pending = get_option( self::REGISTRATION_CODE_OPTION );
+		if ( is_array( $pending ) && ( $pending['connection_id'] ?? '' ) === $connection_id ) {
+			if ( time() > ( $pending['expires_at'] ?? 0 ) ) {
+				delete_option( self::REGISTRATION_CODE_OPTION );
+				return new \WP_REST_Response( array( 'status' => 'expired' ), 200 );
+			}
+			return new \WP_REST_Response(
+				array(
+					'status'     => 'pending',
+					'expires_at' => $pending['expires_at'],
+				),
+				200
+			);
+		}
+
+		return new \WP_REST_Response( array( 'status' => 'not_found' ), 200 );
 	}
 
 	/**
@@ -484,8 +514,7 @@ class Admin_Settings {
 		$connections[ $connection_id ] = array(
 			'connection_id'      => $connection_id,
 			'name'               => sanitize_text_field( $connection_data['name'] ),
-			'app_url'            => $connection_data['app_url'],
-			'app_name'           => sanitize_text_field( $connection_data['app_name'] ),
+			'app_name'           => sanitize_text_field( $connection_data['app_name'] ?? '' ),
 			'connected_at'       => time(),
 			'user_id'            => $connection_data['user_id'],
 			'access_token_hash'  => $connection_data['access_token_hash'],
@@ -571,6 +600,15 @@ class Admin_Settings {
 
 		$connections  = $this->get_all_connections();
 		$mcp_endpoint = rest_url( 'mcp/mcp-adapter-default-server' );
+		$pending      = get_option( self::REGISTRATION_CODE_OPTION );
+
+		// Check if pending code has expired.
+		if ( is_array( $pending ) && time() > ( $pending['expires_at'] ?? 0 ) ) {
+			delete_option( self::REGISTRATION_CODE_OPTION );
+			$pending = null;
+		}
+
+		$has_pending = is_array( $pending ) && ! empty( $pending['raw_code'] );
 
 		// Show notices.
 		if ( isset( $_GET['connected'] ) ) {
@@ -593,19 +631,17 @@ class Admin_Settings {
 					<table class="wp-list-table widefat fixed striped" style="max-width: 800px;">
 						<thead>
 							<tr>
-								<th style="width: 20%;">連携ネーム</th>
-								<th style="width: 20%;">アプリ名</th>
-								<th style="width: 25%;">アプリ URL</th>
-								<th style="width: 20%;">連携日時</th>
-								<th style="width: 15%;">操作</th>
+								<th style="width: 30%;">連携ネーム</th>
+								<th style="width: 25%;">アプリ名</th>
+								<th style="width: 25%;">連携日時</th>
+								<th style="width: 20%;">操作</th>
 							</tr>
 						</thead>
 						<tbody>
 							<?php foreach ( $connections as $conn ) : ?>
 								<tr>
 									<td><strong><?php echo esc_html( $conn['name'] ?? '' ); ?></strong></td>
-									<td><?php echo esc_html( $conn['app_name'] ?? 'Unknown' ); ?></td>
-									<td><code style="font-size: 12px;"><?php echo esc_html( $conn['app_url'] ?? '' ); ?></code></td>
+									<td><?php echo esc_html( $conn['app_name'] ?: '—' ); ?></td>
 									<td>
 										<?php
 										if ( ! empty( $conn['connected_at'] ) ) {
@@ -638,47 +674,133 @@ class Admin_Settings {
 				<?php endif; ?>
 			</div>
 
-			<div class="wp-mcp-card">
-				<h2>新しい連携を追加</h2>
-				<form method="post">
-					<?php wp_nonce_field( 'wp_mcp_connect' ); ?>
-					<table class="form-table">
-						<tr>
-							<th scope="row">
-								<label for="connection_name">連携ネーム</label>
-							</th>
-							<td>
-								<input type="text" id="connection_name" name="connection_name"
-									   class="regular-text"
-									   placeholder="例: マーケティング連携"
-									   required>
-								<p class="description">
-									この連携を識別するための名前を入力してください。
-								</p>
-							</td>
-						</tr>
-						<tr>
-							<th scope="row">
-								<label for="app_url">連携先アプリの URL</label>
-							</th>
-							<td>
-								<input type="url" id="app_url" name="app_url"
-									   class="regular-text"
-									   placeholder="https://your-app.example.com"
-									   required>
-								<p class="description">
-									連携するアプリの URL を入力してください。
-								</p>
-							</td>
-						</tr>
-					</table>
-					<p class="submit">
-						<button type="submit" name="wp_mcp_connect" class="button button-primary button-hero">
-							アプリと連携する
+			<?php if ( $has_pending ) : ?>
+				<?php
+				$register_endpoint = rest_url( 'wp-mcp/v1/register' );
+				$connection_url    = add_query_arg( 'code', $pending['raw_code'], $register_endpoint );
+				$connection_id     = $pending['connection_id'] ?? '';
+				$expires_at        = $pending['expires_at'] ?? 0;
+				$status_endpoint   = rest_url( 'wp-mcp/v1/connection-status/' . $connection_id );
+				?>
+				<div class="wp-mcp-card">
+					<h2>接続URL — <?php echo esc_html( $pending['connection_name'] ?? '' ); ?></h2>
+
+					<div class="wp-mcp-pending-box">
+						<p class="wp-mcp-pending-label">この接続URLをアプリに貼り付けてください:</p>
+						<div class="wp-mcp-url-display">
+							<code id="wp-mcp-connection-url"><?php echo esc_html( $connection_url ); ?></code>
+							<button type="button" class="button wp-mcp-copy" data-copy="<?php echo esc_attr( $connection_url ); ?>">
+								コピー
+							</button>
+						</div>
+
+						<div class="wp-mcp-pending-info">
+							<table class="wp-mcp-info-table">
+								<tr>
+									<th>サイト URL</th>
+									<td><code><?php echo esc_html( get_site_url() ); ?></code></td>
+								</tr>
+								<tr>
+									<th>MCP エンドポイント</th>
+									<td><code><?php echo esc_html( $mcp_endpoint ); ?></code></td>
+								</tr>
+								<tr>
+									<th>登録エンドポイント</th>
+									<td><code><?php echo esc_html( $register_endpoint ); ?></code></td>
+								</tr>
+							</table>
+						</div>
+
+						<div class="wp-mcp-pending-status" id="wp-mcp-pending-status">
+							<span class="dashicons dashicons-update wp-mcp-spin"></span>
+							<span>アプリからの接続を待機中...</span>
+							<span class="wp-mcp-timer" id="wp-mcp-timer"></span>
+						</div>
+					</div>
+
+					<form method="post" style="margin-top: 16px;">
+						<?php wp_nonce_field( 'wp_mcp_cancel_pending' ); ?>
+						<button type="submit" name="wp_mcp_cancel_pending" class="button button-secondary">
+							キャンセル
 						</button>
-					</p>
-				</form>
-			</div>
+					</form>
+				</div>
+
+				<script>
+				(function() {
+					var expiresAt = <?php echo (int) $expires_at; ?>;
+					var statusUrl = <?php echo wp_json_encode( $status_endpoint ); ?>;
+					var settingsUrl = <?php echo wp_json_encode( admin_url( 'options-general.php?page=' . self::PAGE_SLUG . '&connected=1' ) ); ?>;
+					var timerEl = document.getElementById('wp-mcp-timer');
+					var statusEl = document.getElementById('wp-mcp-pending-status');
+
+					function updateTimer() {
+						var remaining = expiresAt - Math.floor(Date.now() / 1000);
+						if (remaining <= 0) {
+							timerEl.textContent = '（有効期限切れ）';
+							statusEl.innerHTML = '<span class="dashicons dashicons-no" style="color:#dc3232;"></span> <span>接続URLの有効期限が切れました。新しいURLを生成してください。</span>';
+							return;
+						}
+						var min = Math.floor(remaining / 60);
+						var sec = remaining % 60;
+						timerEl.textContent = '（残り ' + min + '分' + (sec < 10 ? '0' : '') + sec + '秒）';
+						setTimeout(updateTimer, 1000);
+					}
+					updateTimer();
+
+					function pollStatus() {
+						fetch(statusUrl, {
+							credentials: 'same-origin',
+							headers: { 'X-WP-Nonce': <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?> }
+						})
+						.then(function(res) { return res.json(); })
+						.then(function(data) {
+							if (data.status === 'connected') {
+								statusEl.innerHTML = '<span class="dashicons dashicons-yes-alt" style="color:#46b450;"></span> <span>連携が完了しました！ページを更新しています...</span>';
+								setTimeout(function() { window.location.href = settingsUrl; }, 1000);
+							} else if (data.status === 'expired' || data.status === 'not_found') {
+								statusEl.innerHTML = '<span class="dashicons dashicons-no" style="color:#dc3232;"></span> <span>接続URLの有効期限が切れました。新しいURLを生成してください。</span>';
+							} else {
+								setTimeout(pollStatus, 3000);
+							}
+						})
+						.catch(function() {
+							setTimeout(pollStatus, 5000);
+						});
+					}
+					setTimeout(pollStatus, 3000);
+				})();
+				</script>
+
+			<?php else : ?>
+				<div class="wp-mcp-card">
+					<h2>新しい連携を追加</h2>
+					<form method="post">
+						<?php wp_nonce_field( 'wp_mcp_generate' ); ?>
+						<table class="form-table">
+							<tr>
+								<th scope="row">
+									<label for="connection_name">連携ネーム</label>
+								</th>
+								<td>
+									<input type="text" id="connection_name" name="connection_name"
+										   class="regular-text"
+										   placeholder="例: マーケティング連携"
+										   required>
+									<p class="description">
+										この連携を識別するための名前を入力してください。
+									</p>
+								</td>
+							</tr>
+						</table>
+						<p class="submit">
+							<button type="submit" name="wp_mcp_generate" class="button button-primary button-hero">
+								接続URLを生成する
+							</button>
+						</p>
+					</form>
+				</div>
+			<?php endif; ?>
 
 			<div class="wp-mcp-card">
 				<h2>MCP サーバー情報</h2>
@@ -799,15 +921,67 @@ class Admin_Settings {
 			background: #f0f0f1;
 			padding: 2px 6px;
 		}
+		.wp-mcp-pending-box {
+			background: #f0f6fc;
+			border: 1px solid #c3d1e0;
+			border-radius: 4px;
+			padding: 20px;
+		}
+		.wp-mcp-pending-label {
+			font-weight: 600;
+			margin-top: 0;
+			margin-bottom: 12px;
+		}
+		.wp-mcp-url-display {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 16px;
+		}
+		.wp-mcp-url-display code {
+			background: #fff;
+			border: 1px solid #ccd0d4;
+			padding: 10px 14px;
+			font-size: 13px;
+			flex: 1;
+			word-break: break-all;
+			display: block;
+		}
+		.wp-mcp-pending-info {
+			margin-bottom: 16px;
+			padding-top: 12px;
+			border-top: 1px solid #c3d1e0;
+		}
+		.wp-mcp-pending-status {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 12px 16px;
+			background: #fff;
+			border: 1px solid #ccd0d4;
+			border-radius: 4px;
+			font-size: 14px;
+		}
+		.wp-mcp-spin {
+			animation: wp-mcp-rotation 1.5s linear infinite;
+		}
+		@keyframes wp-mcp-rotation {
+			from { transform: rotate(0deg); }
+			to   { transform: rotate(360deg); }
+		}
+		.wp-mcp-timer {
+			color: #666;
+			font-size: 13px;
+		}
 		</style>
 
 		<script>
 		document.addEventListener('DOMContentLoaded', function() {
 			document.querySelectorAll('.wp-mcp-copy').forEach(function(btn) {
 				btn.addEventListener('click', function() {
-					const text = this.getAttribute('data-copy');
+					var text = this.getAttribute('data-copy');
 					navigator.clipboard.writeText(text).then(function() {
-						const original = btn.textContent;
+						var original = btn.textContent;
 						btn.textContent = 'コピーしました！';
 						setTimeout(function() {
 							btn.textContent = original;
