@@ -7,5 +7,7 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'WP\\MCP\\' => array($vendorDir . '/wordpress/mcp-adapter/includes'),
+    'SzepeViktor\\PHPStan\\WordPress\\' => array($vendorDir . '/szepeviktor/phpstan-wordpress/src'),
+    'PHPStan\\ExtensionInstaller\\' => array($vendorDir . '/phpstan/extension-installer/src'),
     'Automattic\\Jetpack\\Autoloader\\' => array($vendorDir . '/automattic/jetpack-autoloader/src'),
 );

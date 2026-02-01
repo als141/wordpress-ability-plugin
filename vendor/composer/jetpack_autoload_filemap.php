@@ -6,6 +6,10 @@ $vendorDir = dirname(__DIR__);
 $baseDir   = dirname($vendorDir);
 
 return array(
+	'9b38cf48e83f5d8f60375221cd213eee' => array(
+		'version' => '2.1.38.0',
+		'path'    => $vendorDir . '/phpstan/phpstan/bootstrap.php'
+	),
 	'2d223b650b5c56928c1affa16ee5cfe2' => array(
 		'version' => '0.4.0.0',
 		'path'    => $vendorDir . '/wordpress/abilities-api/includes/bootstrap.php'

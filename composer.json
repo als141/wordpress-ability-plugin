@@ -24,12 +24,24 @@
   },
   "config": {
     "allow-plugins": {
-      "automattic/jetpack-autoloader": true
+      "automattic/jetpack-autoloader": true,
+      "phpstan/extension-installer": true
     },
     "sort-packages": true,
     "optimize-autoloader": true
   },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "phpstan/extension-installer": "^1.4",
+    "szepeviktor/phpstan-wordpress": "^2.0"
+  },
   "scripts": {
+    "lint": "find . -name '*.php' -not -path './vendor/*' -exec php -l {} \\;",
+    "analyse": "vendor/bin/phpstan analyse",
+    "check": [
+      "@lint",
+      "@analyse"
+    ],
     "post-install-cmd": [
       "@composer dump-autoload"
     ],

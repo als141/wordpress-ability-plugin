@@ -284,6 +284,14 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 - **本番ビルド**: `composer install --no-dev --optimize-autoloader`
 - **デプロイ**: GitHub にタグ push → GitHub Actions → WordPress.org SVN 自動デプロイ
 
+### コード品質チェック
+- **構文チェック**: `composer run lint` — 全 PHP ファイルの `php -l` 構文検証
+- **静的解析**: `composer run analyse` — PHPStan level 5 で型・ロジック検証
+- **全チェック**: `composer run check` — lint + analyse を順次実行
+- **pre-push hook**: `git push` 時に自動で `lint` + `analyse` が実行される。エラーがあれば push を拒否
+- **PHPStan 設定**: `phpstan.neon` — level 5, WordPress stubs 対応, PHPDoc 型推論緩和あり
+- **dev 依存**: `phpstan/phpstan`, `phpstan/extension-installer`, `szepeviktor/phpstan-wordpress`
+
 ## Deployment
 - **ターゲット**: WordPress.org プラグインディレクトリ
 - **デプロイ方式**: GitHub Actions (`10up/action-wordpress-plugin-deploy`)

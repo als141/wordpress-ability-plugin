@@ -26,6 +26,74 @@ return array(
 		'version' => '5.0.15',
 		'path'    => $vendorDir . '/automattic/jetpack-autoloader/src/ManifestGenerator.php'
 	),
+	'PHPStan\\ExtensionInstaller\\GeneratedConfig' => array(
+		'version' => '1.4.3.0',
+		'path'    => $vendorDir . '/phpstan/extension-installer/src/GeneratedConfig.php'
+	),
+	'PHPStan\\ExtensionInstaller\\Plugin' => array(
+		'version' => '1.4.3.0',
+		'path'    => $vendorDir . '/phpstan/extension-installer/src/Plugin.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\ApplyFiltersDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/ApplyFiltersDynamicFunctionReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\AssertWpErrorTypeSpecifyingExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/AssertWpErrorTypeSpecifyingExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\EscSqlDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/EscSqlDynamicFunctionReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\HookCallbackRule' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/HookCallbackRule.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\HookDocBlock' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/HookDocBlock.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\HookDocsRule' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/HookDocsRule.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\HookDocsVisitor' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/HookDocsVisitor.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\NormalizeWhitespaceDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/NormalizeWhitespaceDynamicFunctionReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\NormalizedArguments' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/NormalizedArguments.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\ShortcodeAttsDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/ShortcodeAttsDynamicFunctionReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\SlashitFunctionsDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/SlashitFunctionsDynamicFunctionReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\StripslashesFromStringsOnlyDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/StripslashesFromStringsOnlyDynamicFunctionReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\WpConstantFetchRule' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/WpConstantFetchRule.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\WpParseUrlFunctionDynamicReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/WpParseUrlFunctionDynamicReturnTypeExtension.php'
+	),
+	'SzepeViktor\\PHPStan\\WordPress\\WpSlashDynamicFunctionReturnTypeExtension' => array(
+		'version' => '2.0.3.0',
+		'path'    => $vendorDir . '/szepeviktor/phpstan-wordpress/src/WpSlashDynamicFunctionReturnTypeExtension.php'
+	),
 	'WP\\MCP\\Abilities\\DiscoverAbilitiesAbility' => array(
 		'version' => '0.4.1.0',
 		'path'    => $vendorDir . '/wordpress/mcp-adapter/includes/Abilities/DiscoverAbilitiesAbility.php'

@@ -1,0 +1,18 @@
+parameters:
+	level: 5
+	paths:
+		- readonly-ability-plugin.php
+		- includes/
+	excludePaths:
+		- vendor/
+	scanDirectories:
+		- vendor/wordpress/abilities-api/
+		- vendor/wordpress/mcp-adapter/
+	bootstrapFiles:
+		- vendor/autoload.php
+	treatPhpDocTypesAsCertain: false
+	ignoreErrors:
+		- identifier: arrayValues.list
+		- identifier: return.unusedType
+		- identifier: isset.offset
+		- identifier: booleanNot.alwaysTrue

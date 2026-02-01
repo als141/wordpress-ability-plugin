@@ -320,7 +320,7 @@ class Admin_Settings {
 	 * Get or create SaaS credentials for a user.
 	 *
 	 * @param int $user_id User ID.
-	 * @return array|WP_Error
+	 * @return array|\WP_Error
 	 */
 	private function get_or_create_saas_credentials( int $user_id ) {
 		$api_key_manager = API_Key_Manager::instance();
