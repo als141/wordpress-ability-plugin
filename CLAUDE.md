@@ -20,10 +20,18 @@
 > 7. **自己改善**: ユーザーに指摘された間違い・非効率・判断ミスは「自己改善ログ」セクションに記録する
 > 8. **常時更新の義務**: 新情報の発見、コードリーディング中の新発見、設計変更、技術的知見の獲得、バグの発見と修正など — あらゆる新たな情報や更新が発生した場合は**必ずその場でこのファイルを更新する**
 > 9. **バージョン更新時**: プラグインのバージョンを変更したら、このファイル内の全てのバージョン記述も合わせて更新する
-> 10. **⚠️ コード変更時のバージョン更新は必須**: プラグインのPHPコードに何らかの変更（バグ修正、機能追加、リファクタリング等）を行った場合、**必ずパッチバージョン以上をインクリメントする**。バージョン更新なしのコード変更は禁止。更新箇所は以下の3ファイル:
->     - `readonly-ability-plugin.php`: プラグインヘッダー `Version:` + `WP_MCP_PLUGIN_VERSION` 定数
->     - `readme.txt`: `Stable tag:` + Changelog セクションに変更内容を追記
->     - `CLAUDE.md`: Constants テーブルの `WP_MCP_PLUGIN_VERSION` + 更新履歴テーブルに追記
+> 10. **🚨🚨🚨 コード変更時のバージョン更新は最優先義務 🚨🚨🚨**:
+>     - **絶対ルール**: プラグインの PHP/JS/CSS コードに **1行でも変更** を加えたら、**必ずバージョン番号をインクリメント** してからコミットしろ。例外は一切ない
+>     - **バージョン更新なしのコード変更コミットは厳禁**。これを破ると WordPress のアップデート機構が壊れ、ユーザーに更新が届かなくなる
+>     - **タイミング**: コード変更の **最初のステップ** としてバージョンを上げろ。「後で上げよう」は禁止。忘れるからだ
+>     - **バージョニング規則**: バグ修正・軽微変更 → パッチ (x.y.Z)、機能追加 → マイナー (x.Y.0)、破壊的変更 → メジャー (X.0.0)
+>     - **更新必須箇所 (4箇所)**:
+>       1. `readonly-ability-plugin.php` — プラグインヘッダー `Version:` の値
+>       2. `readonly-ability-plugin.php` — `WP_MCP_PLUGIN_VERSION` 定数の値
+>       3. `readme.txt` — `Stable tag:` の値 + `== Changelog ==` セクションに変更内容を追記
+>       4. `CLAUDE.md` — Constants テーブルの `WP_MCP_PLUGIN_VERSION` + 更新履歴テーブルに追記
+>     - **確認手順**: バージョン更新後、`grep -rn '1.x.x' readonly-ability-plugin.php readme.txt` で全箇所が一致していることを確認しろ
+>     - **過去の失敗**: バージョン更新を忘れてユーザーに指摘された実績あり。二度と繰り返すな
 > 11. **⚠️ PHPコード変更後の構文チェックは必須**: PHPファイルを変更したら、**必ず `php -l` で構文チェックを実行**してから完了報告すること。コマンド: `find <project> -name '*.php' -not -path '*/vendor/*' -exec php -l {} \; 2>&1 | grep -v "No syntax errors"` — 出力がゼロであることを確認。構文チェックなしでの完了報告は禁止
 
 ## Package Management (STRICT)
@@ -94,7 +102,7 @@ wordpress-ability-plugin/
 ## Constants
 | 定数 | 値 | 定義場所 |
 |------|---|---------|
-| `WP_MCP_PLUGIN_VERSION` | `'1.1.0'` | readonly-ability-plugin.php |
+| `WP_MCP_PLUGIN_VERSION` | `'1.1.1'` | readonly-ability-plugin.php |
 | `WP_MCP_ABILITY_PREFIX` | `'wp-mcp'` | readonly-ability-plugin.php |
 
 ## MCP Tools (25個)
@@ -384,6 +392,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 > ユーザーから指摘された失敗・判断ミス・非効率を記録し、同じ過ちを繰り返さないための学習記録。
 
+- **2026-02-02**: コード変更時にバージョン番号の更新を忘れ、ユーザーに指摘された。複数ファイルにまたがるバージョン更新を「後で」と後回しにした結果。**教訓**: コード変更の最初のステップとしてバージョンを上げること。4箇所（plugin header, 定数, readme.txt, CLAUDE.md）を必ず同時に更新。grep で一致確認する習慣をつけろ
 - **2026-02-01**: `declare(strict_types=1)` の移動時に `namespace` との順序制約を考慮せず、fatal error を発生させサイト全体をダウンさせた。PHPの `declare` + `namespace` の順序制約を正しく理解していなかった。**教訓**: PHPファイルの先頭構造を変更する際は必ず `php -l` で構文チェックを実行してからデプロイすること。正しい順序は `<?php` → docblock → `declare` → `namespace` → その他コード
 
 ## 更新履歴
