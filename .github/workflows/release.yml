@@ -12,6 +12,9 @@ on:
         description: 'Version to release (e.g., 1.0.0)'
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   check:
     name: PHP Lint & Static Analysis
