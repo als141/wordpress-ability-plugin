@@ -4,7 +4,7 @@ Tags: mcp, ai, model-context-protocol, api, saas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,9 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 3. MCP server information - Endpoint URLs and site details
 
 == Changelog ==
+
+= 1.0.2 =
+* Fix: Move `declare(strict_types=1)` to first statement in all saas-auth PHP files (fixes fatal error on PHP 8.1+)
 
 = 1.0.1 =
 * Security: API secret now stored as hashed value instead of plaintext

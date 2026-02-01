@@ -1,7 +1,4 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
 /**
  * OAuth 2.0 Metadata Endpoints for MCP Specification Compliance.
  *
@@ -13,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 declare( strict_types=1 );
 
 namespace WP_MCP\SaaS_Auth;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 /**
  * OAuth Metadata class.

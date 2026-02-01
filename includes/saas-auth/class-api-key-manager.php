@@ -1,7 +1,4 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
 /**
  * API Key Manager for SaaS Authentication.
  *
@@ -13,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 declare( strict_types=1 );
 
 namespace WP_MCP\SaaS_Auth;
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 use WP_Error;
 use WP_User;

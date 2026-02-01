@@ -24,6 +24,7 @@
 >     - `readonly-ability-plugin.php`: プラグインヘッダー `Version:` + `WP_MCP_PLUGIN_VERSION` 定数
 >     - `readme.txt`: `Stable tag:` + Changelog セクションに変更内容を追記
 >     - `CLAUDE.md`: Constants テーブルの `WP_MCP_PLUGIN_VERSION` + 更新履歴テーブルに追記
+> 11. **⚠️ PHPコード変更後の構文チェックは必須**: PHPファイルを変更したら、**必ず `php -l` で構文チェックを実行**してから完了報告すること。コマンド: `find <project> -name '*.php' -not -path '*/vendor/*' -exec php -l {} \; 2>&1 | grep -v "No syntax errors"` — 出力がゼロであることを確認。構文チェックなしでの完了報告は禁止
 
 ## Package Management (STRICT)
 - **PHP依存管理**: `composer require <package>` のみ使用。手動でvendorを編集しない
@@ -93,7 +94,7 @@ wordpress-ability-plugin/
 ## Constants
 | 定数 | 値 | 定義場所 |
 |------|---|---------|
-| `WP_MCP_PLUGIN_VERSION` | `'1.0.1'` | readonly-ability-plugin.php |
+| `WP_MCP_PLUGIN_VERSION` | `'1.0.2'` | readonly-ability-plugin.php |
 | `WP_MCP_ABILITY_PREFIX` | `'wp-mcp'` | readonly-ability-plugin.php |
 
 ## MCP Tools (25個)
@@ -356,18 +357,20 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 - **404 on /wp-mcp/v1/register**: `class-admin-settings.php` の REST ルート登録が `is_admin()` 内にラップされていた → REST コンテキストではフロントエンドなので `is_admin()` は false → `Admin_Settings::instance()` の初期化を `is_admin()` の外に移動して解決
 - **mcp-server.php 重複 ABSPATH チェック**: `exit` + `return` が両方あった → `exit` のみに統一
 - **プラグイン更新時の SaaS 連携**: 更新しても連携は切れない。全データは `wp_options`/`user_meta` に保存されており、プラグインディレクトリのファイル入れ替えでは消えない。SaaS 側は Bearer Token (permanent) のみ使用。activation hook は既存設定がある場合何もしない。uninstall hook は未実装なのでアンインストールしてもデータは残る
+- **`declare(strict_types=1)` + `namespace` の順序制約**: PHP では `declare` はファイルの最初のステートメント、`namespace` は `declare` の直後でなければならない。`ABSPATH` チェック等のコードを `declare` と `namespace` の間に置くと fatal error。正しい順序: `<?php` → docblock → `declare(strict_types=1)` → `namespace` → `ABSPATH` チェック → `use` 文。docblock（コメント）は `declare` の前に置いても問題ない
 - **secret ハッシュ化の互換性**: 1.0.0 の平文 `secret` と 1.0.1 の `secret_hash` (wp_hash_password) は `validate_credentials()` と `authenticate_basic()` の両方でレガシー互換対応済み。`$P$` / `$wp$` プレフィックスで判定
 
 ## 自己改善ログ
 
 > ユーザーから指摘された失敗・判断ミス・非効率を記録し、同じ過ちを繰り返さないための学習記録。
 
-（まだ記録なし — 今後の指摘を随時追記する）
+- **2026-02-01**: `declare(strict_types=1)` の移動時に `namespace` との順序制約を考慮せず、fatal error を発生させサイト全体をダウンさせた。PHPの `declare` + `namespace` の順序制約を正しく理解していなかった。**教訓**: PHPファイルの先頭構造を変更する際は必ず `php -l` で構文チェックを実行してからデプロイすること。正しい順序は `<?php` → docblock → `declare` → `namespace` → その他コード
 
 ## 更新履歴
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
+| 2026-02-01 | 1.0.1 → 1.0.2 | `declare(strict_types=1)` を全 saas-auth ファイルでファイル先頭に移動（PHP fatal error 修正） |
 | 2026-02-01 | 1.0.0 → 1.0.1 | セキュリティ＆バグ修正17件。API secret ハッシュ化、introspect認証追加、デバッグエンドポイント制限、各ツールの出力修正、CJKキーワード密度修正、OAuth メタデータ整理、authenticate_basic() の secret_hash 対応 |
 
 ---
