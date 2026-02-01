@@ -20,6 +20,10 @@
 > 7. **自己改善**: ユーザーに指摘された間違い・非効率・判断ミスは「自己改善ログ」セクションに記録する
 > 8. **常時更新の義務**: 新情報の発見、コードリーディング中の新発見、設計変更、技術的知見の獲得、バグの発見と修正など — あらゆる新たな情報や更新が発生した場合は**必ずその場でこのファイルを更新する**
 > 9. **バージョン更新時**: プラグインのバージョンを変更したら、このファイル内の全てのバージョン記述も合わせて更新する
+> 10. **⚠️ コード変更時のバージョン更新は必須**: プラグインのPHPコードに何らかの変更（バグ修正、機能追加、リファクタリング等）を行った場合、**必ずパッチバージョン以上をインクリメントする**。バージョン更新なしのコード変更は禁止。更新箇所は以下の3ファイル:
+>     - `readonly-ability-plugin.php`: プラグインヘッダー `Version:` + `WP_MCP_PLUGIN_VERSION` 定数
+>     - `readme.txt`: `Stable tag:` + Changelog セクションに変更内容を追記
+>     - `CLAUDE.md`: Constants テーブルの `WP_MCP_PLUGIN_VERSION` + 更新履歴テーブルに追記
 
 ## Package Management (STRICT)
 - **PHP依存管理**: `composer require <package>` のみ使用。手動でvendorを編集しない
@@ -315,6 +319,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 | BUG-004 | `/auth/test` 本番公開 | `class-saas-auth-provider.php` | `WP_DEBUG` 時のみ登録に変更 |
 | BUG-005 | `/token/introspect` 認証なし + permanent token 判定ミス | `class-saas-auth-provider.php` | 認証必須化 + permanent token 判定修正 |
 | BUG-006 | API secret 平文保存 | `class-api-key-manager.php` | `wp_hash_password()` でハッシュ化、レガシー互換あり |
+| BUG-024 | `authenticate_basic()` が `secret_hash` 非対応 | `class-saas-auth-provider.php` | `validate_credentials()` と同じレガシー互換ロジックを適用 |
 | BUG-008 | `get-categories`/`get-tags` WP_Error チェックなし | `tools.php` | `is_wp_error()` チェック追加 |
 | BUG-009 | `create-draft-post` meta 保護キー書き込み可能 | `tools.php` | `is_protected_meta()` チェック追加 |
 | BUG-010 | `update-post-meta` unchanged で false | `tools.php` | `false !== $updated` で判定修正 |
@@ -350,6 +355,8 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 ## Troubleshooting Log
 - **404 on /wp-mcp/v1/register**: `class-admin-settings.php` の REST ルート登録が `is_admin()` 内にラップされていた → REST コンテキストではフロントエンドなので `is_admin()` は false → `Admin_Settings::instance()` の初期化を `is_admin()` の外に移動して解決
 - **mcp-server.php 重複 ABSPATH チェック**: `exit` + `return` が両方あった → `exit` のみに統一
+- **プラグイン更新時の SaaS 連携**: 更新しても連携は切れない。全データは `wp_options`/`user_meta` に保存されており、プラグインディレクトリのファイル入れ替えでは消えない。SaaS 側は Bearer Token (permanent) のみ使用。activation hook は既存設定がある場合何もしない。uninstall hook は未実装なのでアンインストールしてもデータは残る
+- **secret ハッシュ化の互換性**: 1.0.0 の平文 `secret` と 1.0.1 の `secret_hash` (wp_hash_password) は `validate_credentials()` と `authenticate_basic()` の両方でレガシー互換対応済み。`$P$` / `$wp$` プレフィックスで判定
 
 ## 自己改善ログ
 
@@ -361,7 +368,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
-| 2026-02-01 | 1.0.0 → 1.0.1 | セキュリティ＆バグ修正16件。API secret ハッシュ化、introspect認証追加、デバッグエンドポイント制限、各ツールの出力修正、CJKキーワード密度修正、OAuth メタデータ整理 |
+| 2026-02-01 | 1.0.0 → 1.0.1 | セキュリティ＆バグ修正17件。API secret ハッシュ化、introspect認証追加、デバッグエンドポイント制限、各ツールの出力修正、CJKキーワード密度修正、OAuth メタデータ整理、authenticate_basic() の secret_hash 対応 |
 
 ---
 

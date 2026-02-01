@@ -549,9 +549,19 @@ class SaaS_Auth_Provider {
 			return new WP_Error( 'api_key_inactive', 'API key is inactive.' );
 		}
 
-		// Verify secret.
-		if ( ! isset( $found_key_data['secret'] ) || ! hash_equals( $found_key_data['secret'], $secret ) ) {
+		// Verify secret (supports both hashed and legacy plaintext).
+		$stored_hash = $found_key_data['secret_hash'] ?? ( $found_key_data['secret'] ?? '' );
+		if ( empty( $stored_hash ) ) {
 			return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
+		}
+		if ( str_starts_with( $stored_hash, '$P$' ) || str_starts_with( $stored_hash, '$wp$' ) ) {
+			if ( ! wp_check_password( $secret, $stored_hash ) ) {
+				return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
+			}
+		} else {
+			if ( ! hash_equals( $stored_hash, $secret ) ) {
+				return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
+			}
 		}
 
 		// Update last used timestamp.

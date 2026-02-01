@@ -135,6 +135,7 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 * Fix: CJK keyword density uses character-based calculation
 * Fix: Prompts return WP_Error for invalid post_id/category_id
 * Fix: wp_admin_notice fallback for WordPress versions before 6.4
+* Fix: Basic Auth now supports hashed API secrets (backwards compatible)
 
 = 1.0.0 =
 * Initial release
