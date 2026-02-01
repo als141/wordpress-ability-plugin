@@ -172,8 +172,9 @@ wordpress-ability-plugin/
 | メソッド | エンドポイント | 認証 | 目的 |
 |---------|--------------|------|------|
 | POST | `/wp-json/mcp/mcp-adapter-default-server` | Bearer/ApiKey/Basic | MCP JSON-RPC サーバー |
-| POST | `/wp-json/wp-mcp/v1/register` | なし (registration_code) | SaaS 登録コード交換 |
-| GET | `/wp-json/wp-mcp/v1/connection-callback` | なし | SaaS コールバック |
+| POST | `/wp-json/wp-mcp/v1/register` | なし (registration_code) | アプリ登録コード交換 |
+| GET | `/wp-json/wp-mcp/v1/connection-callback` | なし | アプリコールバック (後方互換) |
+| GET | `/wp-json/wp-mcp/v1/connection-status/{connection_id}` | manage_options | 接続状態ポーリング (管理画面用) |
 | GET | `/wp-json/wp-mcp/v1/api-keys` | ログインユーザー | API キー一覧 |
 | POST | `/wp-json/wp-mcp/v1/api-keys` | ログインユーザー | API キー作成 |
 | DELETE | `/wp-json/wp-mcp/v1/api-keys/{key_id}` | ログインユーザー | API キー削除 |
@@ -205,26 +206,30 @@ wordpress-ability-plugin/
 | `_wp_mcp_api_key` | ユーザーの API キーハッシュ |
 | `_wp_mcp_api_key_data` | API キーメタデータ |
 
-## Authentication Flow (SaaS連携)
+## Authentication Flow (アプリ連携)
 
+### v1.1.0 接続URL方式 (推奨)
 ```
-管理者 → [SaaS と連携する] ボタンクリック
+管理者 → 連携ネーム入力 → [接続URLを生成する] ボタンクリック
   ↓
-WordPress: registration_code 生成 (10分有効)
+WordPress: registration_code 生成 (10分有効) + 接続URL表示
   ↓
-SaaS にリダイレクト（パラメータ: site_url, site_name, mcp_endpoint,
-  register_endpoint, registration_code, callback_url）
+管理者: 接続URLをアプリにコピー＆ペースト
   ↓
-SaaS → POST /wp-mcp/v1/register (registration_code 送信)
+アプリ → POST /wp-mcp/v1/register (registration_code 送信)
   ↓
 WordPress: コード検証 → 永続 access_token + api_key + api_secret を返却
   ↓
-SaaS → callback_url にリダイレクト (status=success)
+管理画面: AJAX ポーリングで接続完了を自動検知 → 「連携完了」表示
   ↓
-WordPress: 「接続済み」表示
-  ↓
-以降: SaaS は Authorization: Bearer {access_token} で MCP 通信
+以降: アプリは Authorization: Bearer {access_token} で MCP 通信
 ```
+
+### 接続URL形式
+```
+https://your-site.com/wp-json/wp-mcp/v1/register?code={registration_code}
+```
+アプリ側はこのURLからサイトURL・エンドポイント・コードを全て取得できる。
 
 ### 認証方式（MCP リクエスト時）
 1. **Bearer Token (推奨)**: `Authorization: Bearer {access_token}` — SHA256 ハッシュで照合、永続
@@ -385,7 +390,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
-| 2026-02-01 | 1.0.2 → 1.1.0 | 複数アプリ連携対応。単一接続→複数名前付き連携。「SaaS」→「アプリ」UI変更。API キー上限5→20。レガシーデータ自動マイグレーション |
+| 2026-02-02 | 1.0.2 → 1.1.0 | 複数アプリ連携対応。接続URL方式（アプリURL入力不要）。単一接続→複数名前付き連携。「SaaS」→「アプリ」UI変更。API キー上限5→20。レガシーデータ自動マイグレーション。接続状態ポーリング REST エンドポイント追加 |
 | 2026-02-01 | 1.0.1 → 1.0.2 | `declare(strict_types=1)` を全 saas-auth ファイルでファイル先頭に移動（PHP fatal error 修正） |
 | 2026-02-01 | 1.0.0 → 1.0.1 | セキュリティ＆バグ修正17件。API secret ハッシュ化、introspect認証追加、デバッグエンドポイント制限、各ツールの出力修正、CJKキーワード密度修正、OAuth メタデータ整理、authenticate_basic() の secret_hash 対応 |
 
