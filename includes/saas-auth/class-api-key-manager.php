@@ -132,12 +132,13 @@ class API_Key_Manager {
 	/**
 	 * Create a new API key for a user.
 	 *
-	 * @param int    $user_id User ID.
-	 * @param string $name    A friendly name for the key.
-	 * @param array  $scopes  Allowed scopes for this key.
+	 * @param int    $user_id       User ID.
+	 * @param string $name          A friendly name for the key.
+	 * @param array  $scopes        Allowed scopes for this key.
+	 * @param string $connection_id Optional connection ID to use as client_id.
 	 * @return array|WP_Error
 	 */
-	public function create_key( int $user_id, string $name, array $scopes = array( 'read' ) ): array|WP_Error {
+	public function create_key( int $user_id, string $name, array $scopes = array( 'read' ), string $connection_id = '' ): array|WP_Error {
 		$user = get_user_by( 'id', $user_id );
 		if ( ! $user ) {
 			return new WP_Error( 'invalid_user', 'User not found.' );
@@ -155,10 +156,10 @@ class API_Key_Manager {
 		}
 
 		// Limit number of keys per user.
-		if ( count( $existing_keys ) >= 5 ) {
+		if ( count( $existing_keys ) >= 20 ) {
 			return new WP_Error(
 				'key_limit_exceeded',
-				__( 'Maximum number of API keys reached (5). Please delete an existing key first.', 'wp-mcp' )
+				__( 'Maximum number of API keys reached (20). Please delete an existing key first.', 'wp-mcp' )
 			);
 		}
 
@@ -172,7 +173,7 @@ class API_Key_Manager {
 			'created_at' => time(),
 			'last_used'  => null,
 			'active'     => true,
-			'client_id'  => $key_id, // Use key_id as client_id.
+			'client_id'  => ! empty( $connection_id ) ? $connection_id : $key_id,
 		);
 
 		$existing_keys[ $key_id ] = $key_data;
@@ -431,7 +432,32 @@ class API_Key_Manager {
 	}
 
 	/**
-	 * Regenerate API key for SaaS connection (internal use).
+	 * Delete an API key (internal use, no permission check).
+	 *
+	 * @param int    $user_id User ID.
+	 * @param string $key_id  Key ID.
+	 * @return bool
+	 */
+	public function delete_key_internal( int $user_id, string $key_id ): bool {
+		$keys = get_user_meta( $user_id, self::API_KEY_DATA_META, true );
+		if ( ! is_array( $keys ) || ! isset( $keys[ $key_id ] ) ) {
+			return false;
+		}
+
+		unset( $keys[ $key_id ] );
+		update_user_meta( $user_id, self::API_KEY_DATA_META, $keys );
+
+		$key_hashes = get_user_meta( $user_id, self::API_KEY_META, true );
+		if ( is_array( $key_hashes ) && isset( $key_hashes[ $key_id ] ) ) {
+			unset( $key_hashes[ $key_id ] );
+			update_user_meta( $user_id, self::API_KEY_META, $key_hashes );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Regenerate API key for a connection (internal use).
 	 *
 	 * @param int    $user_id User ID.
 	 * @param string $key_id  Key ID.

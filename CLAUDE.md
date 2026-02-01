@@ -33,7 +33,7 @@
 
 ## Project Overview
 - **プラグイン名**: WordPress MCP Ability Suite
-- **目的**: WordPress のコンテンツ操作を MCP (Model Context Protocol) 経由で AI エージェントや外部 SaaS に公開する
+- **目的**: WordPress のコンテンツ操作を MCP (Model Context Protocol) 経由で AI エージェントや外部アプリに公開する
 - **Author**: als141
 - **ライセンス**: GPL-2.0-or-later
 - **WordPress.org 公開準備中** (feat/oauth ブランチで開発 → master にマージ済み)
@@ -94,7 +94,7 @@ wordpress-ability-plugin/
 ## Constants
 | 定数 | 値 | 定義場所 |
 |------|---|---------|
-| `WP_MCP_PLUGIN_VERSION` | `'1.0.2'` | readonly-ability-plugin.php |
+| `WP_MCP_PLUGIN_VERSION` | `'1.1.0'` | readonly-ability-plugin.php |
 | `WP_MCP_ABILITY_PREFIX` | `'wp-mcp'` | readonly-ability-plugin.php |
 
 ## MCP Tools (25個)
@@ -187,16 +187,17 @@ wordpress-ability-plugin/
 ## WordPress Options
 | オプション名 | 用途 | 型 |
 |-------------|------|---|
-| `wp_mcp_saas_settings` | SaaS 認証設定 | array |
+| `wp_mcp_saas_settings` | 認証設定 | array |
 | `wp_mcp_saas_api_keys` | グローバル API キー | array |
 | `wp_mcp_access_tokens` | アクセストークン（SHA256ハッシュ） | array |
-| `wp_mcp_saas_connection` | SaaS 接続情報 | array |
-| `wp_mcp_registration_code` | 一時登録コード（10分有効） | array |
-| `wp_mcp_saas_url` | 接続先 SaaS URL | string |
+| `wp_mcp_connections` | **複数アプリ連携情報** (v1.1.0~) | array (connection_id → data) |
+| `wp_mcp_registration_code` | 一時登録コード（10分有効、connection_id 含む） | array |
 | `wp_mcp_auth_logs` | 認証監査ログ | array |
 | `mcp_article_regulations` | カテゴリ別記事規約 | array |
 | `mcp_block_templates` | カテゴリ別ブロックテンプレート | array |
 | `mcp_style_guidelines` | カスタムスタイルガイドライン | array |
+| `wp_mcp_saas_connection` | ~~旧: 単一接続情報~~ (レガシー、マイグレーション後は未使用) | array |
+| `wp_mcp_saas_url` | ~~旧: 接続先 URL~~ (レガシー、マイグレーション後は未使用) | string |
 
 ## User Meta Keys
 | メタキー | 用途 |
@@ -384,6 +385,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
+| 2026-02-01 | 1.0.2 → 1.1.0 | 複数アプリ連携対応。単一接続→複数名前付き連携。「SaaS」→「アプリ」UI変更。API キー上限5→20。レガシーデータ自動マイグレーション |
 | 2026-02-01 | 1.0.1 → 1.0.2 | `declare(strict_types=1)` を全 saas-auth ファイルでファイル先頭に移動（PHP fatal error 修正） |
 | 2026-02-01 | 1.0.0 → 1.0.1 | セキュリティ＆バグ修正17件。API secret ハッシュ化、introspect認証追加、デバッグエンドポイント制限、各ツールの出力修正、CJKキーワード密度修正、OAuth メタデータ整理、authenticate_basic() の secret_hash 対応 |
 
