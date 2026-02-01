@@ -471,7 +471,7 @@ function wp_mcp_register_tools() {
 		},
 		'execute_callback' => static function ( $input ) {
 			if ( ! class_exists( 'WP_Block_Patterns_Registry' ) ) {
-				return array();
+				return array( 'items' => array() );
 			}
 
 			$category = isset( $input['category'] ) ? sanitize_key( $input['category'] ) : '';
@@ -686,7 +686,11 @@ function wp_mcp_register_tools() {
 
 			if ( ! empty( $input['meta'] ) && is_array( $input['meta'] ) ) {
 				foreach ( $input['meta'] as $meta_key => $meta_value ) {
-					update_post_meta( $post_id, sanitize_key( $meta_key ), $meta_value );
+					$meta_key = sanitize_key( $meta_key );
+					if ( is_protected_meta( $meta_key, 'post' ) ) {
+						continue;
+					}
+					update_post_meta( $post_id, $meta_key, $meta_value );
 				}
 			}
 
@@ -799,8 +803,11 @@ function wp_mcp_register_tools() {
 			$meta_value = $input['meta_value'];
 			$updated    = update_post_meta( $post_id, $meta_key, $meta_value );
 
+			// update_post_meta returns false when the value is unchanged, which is still a success.
+			$success = false !== $updated;
+
 			return array(
-				'success' => (bool) $updated,
+				'success' => $success,
 				'meta_id' => is_int( $updated ) ? $updated : null,
 			);
 		},
@@ -1094,22 +1101,28 @@ function wp_mcp_register_tools() {
 				$level_key = 'h' . $level;
 				$heading_counts[ $level_key ] = ( isset( $heading_counts[ $level_key ] ) ? $heading_counts[ $level_key ] : 0 ) + 1;
 			}
-			if ( empty( $heading_counts['h1'] ) ) {
-				$issues[] = 'Missing H1 heading.';
-				$recommendations[] = 'Include a single H1 heading.';
+			if ( ! empty( $heading_counts['h1'] ) ) {
+				$issues[] = 'H1 heading found in content. WordPress themes typically output H1 from the post title, causing duplicate H1 tags.';
+				$recommendations[] = 'Use H2 and below for content headings. The post title serves as H1.';
 				$score -= 5;
 			}
 
 			$plain_text = wp_strip_all_tags( $content );
 			$plain = function_exists( 'mb_strtolower' ) ? mb_strtolower( $plain_text ) : strtolower( $plain_text );
+			// For CJK text, use character count as the denominator for density.
+			$is_cjk       = (bool) preg_match( '/[\x{3000}-\x{9FFF}\x{F900}-\x{FAFF}\x{AC00}-\x{D7AF}]/u', $plain );
+			$density_base = $is_cjk && function_exists( 'mb_strlen' )
+				? mb_strlen( preg_replace( '/\s+/u', '', $plain ) )
+				: $word_count;
 			$keyword_density = array();
 			foreach ( $keywords as $keyword ) {
 				$keyword = trim( function_exists( 'mb_strtolower' ) ? mb_strtolower( (string) $keyword ) : strtolower( (string) $keyword ) );
 				if ( '' === $keyword ) {
 					continue;
 				}
-				$occurrences = substr_count( $plain, $keyword );
-				$density = $word_count > 0 ? $occurrences / $word_count : 0;
+				$occurrences = function_exists( 'mb_substr_count' ) ? mb_substr_count( $plain, $keyword ) : substr_count( $plain, $keyword );
+				$kw_len      = $is_cjk && function_exists( 'mb_strlen' ) ? mb_strlen( $keyword ) : 1;
+				$density     = $density_base > 0 ? ( $occurrences * $kw_len ) / $density_base : 0;
 				$keyword_density[ $keyword ] = round( $density, 4 );
 				if ( $occurrences === 0 ) {
 					$issues[] = 'Keyword not found: ' . $keyword;
@@ -1410,6 +1423,9 @@ function wp_mcp_register_tools() {
 			}
 
 			$categories = get_categories( $args );
+			if ( is_wp_error( $categories ) ) {
+				return $categories;
+			}
 			$items = array();
 			foreach ( $categories as $category ) {
 				$items[] = array(
@@ -1470,10 +1486,14 @@ function wp_mcp_register_tools() {
 
 			$tags = get_tags(
 				array(
-					'number' => $per_page,
-					'search' => $search,
+					'number'     => $per_page,
+					'search'     => $search,
+					'hide_empty' => false,
 				)
 			);
+			if ( is_wp_error( $tags ) ) {
+				return $tags;
+			}
 
 			$items = array();
 			foreach ( $tags as $tag ) {
@@ -1549,10 +1569,12 @@ function wp_mcp_register_tools() {
 				return $result;
 			}
 
+			$term = get_term( $result['term_id'], $taxonomy );
+
 			return array(
 				'term_id' => (int) $result['term_id'],
-				'name'    => wp_mcp_string_value( $name ),
-				'slug'    => wp_mcp_string_value( isset( $result['slug'] ) ? $result['slug'] : $slug ),
+				'name'    => wp_mcp_string_value( $term ? $term->name : $name ),
+				'slug'    => wp_mcp_string_value( $term ? $term->slug : $slug ),
 			);
 		},
 	) );
@@ -1582,15 +1604,20 @@ function wp_mcp_register_tools() {
 			return current_user_can( 'read' );
 		},
 		'execute_callback' => static function () {
-			return array(
+			$info = array(
 				'name'        => get_bloginfo( 'name' ),
 				'description' => get_bloginfo( 'description' ),
 				'url'         => get_site_url(),
-				'admin_email' => get_option( 'admin_email' ),
 				'language'    => get_locale(),
 				'timezone'    => get_option( 'timezone_string' ),
 				'gmt_offset'  => (float) get_option( 'gmt_offset' ),
 			);
+
+			if ( current_user_can( 'manage_options' ) ) {
+				$info['admin_email'] = get_option( 'admin_email' );
+			}
+
+			return $info;
 		},
 	) );
 

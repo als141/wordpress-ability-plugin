@@ -224,10 +224,6 @@ class OAuth_Metadata {
 			// REQUIRED: Authorization server identifier.
 			'issuer'                                     => trailingslashit( $site_url ),
 
-			// OPTIONAL: Authorization endpoint (for authorization code flow).
-			// Note: We're using a simplified flow, but include for compatibility.
-			'authorization_endpoint'                     => trailingslashit( $rest_url ) . 'wp-mcp/v1/oauth/authorize',
-
 			// REQUIRED: Token endpoint.
 			'token_endpoint'                             => trailingslashit( $rest_url ) . 'wp-mcp/v1/token',
 
@@ -240,51 +236,33 @@ class OAuth_Metadata {
 			// OPTIONAL: Dynamic client registration endpoint (RFC 7591).
 			'registration_endpoint'                      => trailingslashit( $rest_url ) . 'wp-mcp/v1/oauth/register',
 
-			// OPTIONAL: JWK Set URI (for JWT verification).
-			'jwks_uri'                                   => trailingslashit( $rest_url ) . 'wp-mcp/v1/oauth/jwks',
-
-			// REQUIRED: Supported response types.
+			// Supported response types (token only — no authorization code flow).
 			'response_types_supported'                   => array(
-				'code',
 				'token',
 			),
 
-			// OPTIONAL: Supported grant types.
+			// Supported grant types (client_credentials only).
 			'grant_types_supported'                      => array(
 				'client_credentials',
-				'authorization_code',
-				'refresh_token',
 			),
 
-			// OPTIONAL: Supported token endpoint auth methods.
+			// Supported token endpoint auth methods.
 			'token_endpoint_auth_methods_supported'      => array(
 				'client_secret_basic',
 				'client_secret_post',
 			),
 
-			// OPTIONAL: Supported scopes.
+			// Supported scopes.
 			'scopes_supported'                           => array(
 				'read',
 				'write',
 				'admin',
 			),
 
-			// OPTIONAL: Supported code challenge methods (PKCE).
-			'code_challenge_methods_supported'           => array(
-				'S256',
-				'plain',
-			),
-
-			// OPTIONAL: Service documentation.
+			// Service documentation.
 			'service_documentation'                      => trailingslashit( $site_url ) . 'wp-json/wp-mcp/v1/docs',
 
-			// OPTIONAL: UI locales supported.
-			'ui_locales_supported'                       => array(
-				'en',
-				'ja',
-			),
-
-			// OPTIONAL: Claims supported.
+			// Claims supported.
 			'claims_supported'                           => array(
 				'sub',
 				'iss',
@@ -293,12 +271,6 @@ class OAuth_Metadata {
 				'iat',
 				'scope',
 				'client_id',
-			),
-
-			// OPTIONAL: Response modes supported.
-			'response_modes_supported'                   => array(
-				'query',
-				'fragment',
 			),
 
 			// MCP-specific additions.

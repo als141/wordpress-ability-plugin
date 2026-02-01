@@ -220,11 +220,17 @@ function wp_mcp_register_prompts() {
 		},
 		'execute_callback' => static function ( $input ) {
 			$post_id = isset( $input['post_id'] ) ? absint( $input['post_id'] ) : 0;
-			$post = $post_id ? get_post( $post_id ) : null;
+			if ( ! $post_id ) {
+				return new \WP_Error( 'invalid_input', 'post_id is required.' );
+			}
+			$post = get_post( $post_id );
+			if ( ! $post ) {
+				return new \WP_Error( 'not_found', 'Post not found.' );
+			}
 			$keywords = isset( $input['target_keywords'] ) && is_array( $input['target_keywords'] ) ? array_filter( $input['target_keywords'] ) : array();
 
-			$title = $post ? $post->post_title : '';
-			$content = $post ? wp_strip_all_tags( $post->post_content ) : '';
+			$title = $post->post_title;
+			$content = wp_strip_all_tags( $post->post_content );
 			if ( function_exists( 'mb_strlen' ) && mb_strlen( $content ) > 2000 ) {
 				$content = mb_substr( $content, 0, 2000 ) . '...';
 			}
@@ -305,13 +311,15 @@ function wp_mcp_register_prompts() {
 			$category_id = isset( $input['category_id'] ) ? absint( $input['category_id'] ) : 0;
 			$sample_count = isset( $input['sample_count'] ) ? (int) $input['sample_count'] : 5;
 
-			$category_name = '';
-			if ( $category_id ) {
-				$category = get_category( $category_id );
-				if ( $category && ! is_wp_error( $category ) ) {
-					$category_name = $category->name;
-				}
+			if ( ! $category_id ) {
+				return new \WP_Error( 'invalid_input', 'category_id is required.' );
 			}
+
+			$category = get_category( $category_id );
+			if ( ! $category || is_wp_error( $category ) ) {
+				return new \WP_Error( 'not_found', 'Category not found.' );
+			}
+			$category_name = $category->name;
 
 			$system = 'You are an assistant extracting editorial regulations from existing WordPress articles.';
 			$user = "Analyze category '{$category_name}' using {$sample_count} sample posts. Summarize heading rules, required sections, tone, formatting, and block usage.";

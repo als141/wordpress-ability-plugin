@@ -166,7 +166,7 @@ class API_Key_Manager {
 			'key_id'     => $key_id,
 			'name'       => sanitize_text_field( $name ),
 			'key_hash'   => hash( 'sha256', $api_key ),
-			'secret'     => $api_secret,
+			'secret_hash' => wp_hash_password( $api_secret ),
 			'scopes'     => $this->validate_scopes( $scopes ),
 			'created_at' => time(),
 			'last_used'  => null,
@@ -298,8 +298,9 @@ class API_Key_Manager {
 		$new_key_hash   = hash( 'sha256', $new_api_key );
 
 		// Update key data.
-		$keys[ $key_id ]['key_hash'] = $new_key_hash;
-		$keys[ $key_id ]['secret']   = $new_api_secret;
+		$keys[ $key_id ]['key_hash']     = $new_key_hash;
+		$keys[ $key_id ]['secret_hash']  = wp_hash_password( $new_api_secret );
+		unset( $keys[ $key_id ]['secret'] ); // Remove legacy plaintext.
 		update_user_meta( $user_id, self::API_KEY_DATA_META, $keys );
 
 		// Update hash lookup.
@@ -368,8 +369,20 @@ class API_Key_Manager {
 
 		// Validate secret if provided.
 		if ( ! empty( $api_secret ) ) {
-			if ( ! isset( $matched_key['secret'] ) || ! hash_equals( $matched_key['secret'], $api_secret ) ) {
+			$stored_hash = $matched_key['secret_hash'] ?? ( $matched_key['secret'] ?? '' );
+			if ( empty( $stored_hash ) ) {
 				return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
+			}
+			// Support both hashed (new) and legacy plaintext secrets.
+			if ( str_starts_with( $stored_hash, '$P$' ) || str_starts_with( $stored_hash, '$wp$' ) ) {
+				if ( ! wp_check_password( $api_secret, $stored_hash ) ) {
+					return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
+				}
+			} else {
+				// Legacy plaintext comparison.
+				if ( ! hash_equals( $stored_hash, $api_secret ) ) {
+					return new WP_Error( 'invalid_secret', 'Invalid API secret.' );
+				}
 			}
 		}
 
@@ -435,9 +448,10 @@ class API_Key_Manager {
 		$new_key_hash   = hash( 'sha256', $new_api_key );
 
 		// Update key data.
-		$keys[ $key_id ]['key_hash'] = $new_key_hash;
-		$keys[ $key_id ]['secret']   = $new_api_secret;
-		$keys[ $key_id ]['scopes']   = array( 'read', 'write', 'admin' ); // Ensure full access.
+		$keys[ $key_id ]['key_hash']     = $new_key_hash;
+		$keys[ $key_id ]['secret_hash']  = wp_hash_password( $new_api_secret );
+		unset( $keys[ $key_id ]['secret'] ); // Remove legacy plaintext.
+		$keys[ $key_id ]['scopes']       = array( 'read', 'write', 'admin' ); // Ensure full access.
 		update_user_meta( $user_id, self::API_KEY_DATA_META, $keys );
 
 		// Update hash lookup.

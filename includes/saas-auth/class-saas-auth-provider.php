@@ -713,27 +713,29 @@ class SaaS_Auth_Provider {
 			)
 		);
 
-		// Token introspection.
+		// Token introspection (requires authentication).
 		register_rest_route(
 			'wp-mcp/v1',
 			'/token/introspect',
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( $this, 'handle_token_introspect' ),
-				'permission_callback' => '__return_true',
+				'permission_callback' => array( $this, 'check_permission' ),
 			)
 		);
 
-		// Debug endpoint to test authentication.
-		register_rest_route(
-			'wp-mcp/v1',
-			'/auth/test',
-			array(
-				'methods'             => 'GET',
-				'callback'            => array( $this, 'handle_auth_test' ),
-				'permission_callback' => '__return_true',
-			)
-		);
+		// Debug endpoint to test authentication (only available with WP_DEBUG).
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			register_rest_route(
+				'wp-mcp/v1',
+				'/auth/test',
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( $this, 'handle_auth_test' ),
+					'permission_callback' => '__return_true',
+				)
+			);
+		}
 	}
 
 	/**
@@ -906,8 +908,9 @@ class SaaS_Auth_Provider {
 			return new \WP_REST_Response( array( 'active' => false ), 200 );
 		}
 
-		$token_data = $tokens[ $token_hash ];
-		$is_active  = time() < ( $token_data['expires_at'] ?? 0 );
+		$token_data  = $tokens[ $token_hash ];
+		$is_permanent = ! empty( $token_data['permanent'] ) || null === ( $token_data['expires_at'] ?? null );
+		$is_active    = $is_permanent || ( ! empty( $token_data['expires_at'] ) && time() < $token_data['expires_at'] );
 
 		$response = array(
 			'active'    => $is_active,

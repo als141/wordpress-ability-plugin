@@ -3,7 +3,7 @@
  * Plugin Name:       WordPress MCP Ability Suite
  * Plugin URI:        https://github.com/als141/wordpress-mcp-ability-plugin
  * Description:       Expose WordPress content operations to AI agents via Model Context Protocol (MCP) with SaaS authentication support.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Author:            als141
  * Author URI:        https://profiles.wordpress.org/als141/
  * License:           GPL-2.0-or-later
@@ -45,13 +45,19 @@ if ( ! function_exists( 'wp_mcp_bootstrap_adapter' ) ) {
 
 		if ( version_compare( PHP_VERSION, '8.0', '<' ) ) {
 			add_action( 'admin_notices', static function () {
-				wp_admin_notice(
-					__( 'MCP Adapter を使用するには PHP 8.0 以上が必要です。', 'wp-mcp-suite' ),
-					array(
-						'type'    => 'warning',
-						'dismiss' => false,
-					)
-				);
+				if ( function_exists( 'wp_admin_notice' ) ) {
+					wp_admin_notice(
+						__( 'MCP Adapter を使用するには PHP 8.0 以上が必要です。', 'wp-mcp-suite' ),
+						array(
+							'type'    => 'warning',
+							'dismiss' => false,
+						)
+					);
+				} else {
+					echo '<div class="notice notice-warning"><p>';
+					echo esc_html__( 'MCP Adapter を使用するには PHP 8.0 以上が必要です。', 'wp-mcp-suite' );
+					echo '</p></div>';
+				}
 			} );
 			return;
 		}
@@ -140,7 +146,7 @@ if ( class_exists( '\\WP\\MCP\\Core\\McpAdapter' ) ) {
 }
 
 if ( ! defined( 'WP_MCP_PLUGIN_VERSION' ) ) {
-	define( 'WP_MCP_PLUGIN_VERSION', '1.0.0' );
+	define( 'WP_MCP_PLUGIN_VERSION', '1.0.1' );
 }
 if ( ! defined( 'WP_MCP_ABILITY_PREFIX' ) ) {
 	define( 'WP_MCP_ABILITY_PREFIX', 'wp-mcp' );

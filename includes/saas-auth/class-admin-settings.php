@@ -413,6 +413,13 @@ class Admin_Settings {
 		}
 		update_option( 'wp_mcp_access_tokens', $tokens );
 
+		// Clean up API keys for the connected user.
+		if ( is_array( $connection ) && ! empty( $connection['user_id'] ) ) {
+			$user_id = (int) $connection['user_id'];
+			delete_user_meta( $user_id, \WP_MCP\SaaS_Auth\API_Key_Manager::API_KEY_META );
+			delete_user_meta( $user_id, \WP_MCP\SaaS_Auth\API_Key_Manager::API_KEY_DATA_META );
+		}
+
 		// Remove connection.
 		delete_option( self::CONNECTION_OPTION );
 	}

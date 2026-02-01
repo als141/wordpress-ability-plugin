@@ -4,7 +4,7 @@ Tags: mcp, ai, model-context-protocol, api, saas
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -118,6 +118,24 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 
 == Changelog ==
 
+= 1.0.1 =
+* Security: API secret now stored as hashed value instead of plaintext
+* Security: Token introspection endpoint now requires authentication
+* Security: Debug endpoint /auth/test only available when WP_DEBUG is enabled
+* Security: Protected meta keys blocked in create-draft-post meta input
+* Security: admin_email only returned for users with manage_options capability
+* Fix: get-block-patterns returns correct schema when registry unavailable
+* Fix: create-term now returns correct slug from database
+* Fix: get-categories and get-tags include WP_Error checks
+* Fix: update-post-meta correctly reports success when value unchanged
+* Fix: get-tags now includes empty tags (hide_empty=false)
+* Fix: OAuth metadata only advertises implemented features
+* Fix: disconnect now also removes API keys for the connected user
+* Fix: SEO check no longer reports missing H1 (WordPress title serves as H1)
+* Fix: CJK keyword density uses character-based calculation
+* Fix: Prompts return WP_Error for invalid post_id/category_id
+* Fix: wp_admin_notice fallback for WordPress versions before 6.4
+
 = 1.0.0 =
 * Initial release
 * 25+ MCP tools for WordPress content operations (posts, media, taxonomies, SEO)
@@ -131,6 +149,9 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 * MCP 2025-06-18 specification compliance
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Security and bug fix release. API secrets are now hashed, debug endpoints are restricted, and multiple tool output fixes. Existing API keys remain compatible.
 
 = 1.0.0 =
 Initial release.
