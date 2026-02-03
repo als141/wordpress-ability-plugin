@@ -773,6 +773,7 @@ function wp_mcp_register_tools() {
 				'meta_key'   => array( 'type' => 'string' ),
 				'meta_value' => array(
 					'type' => array( 'string', 'number', 'boolean', 'object', 'array', 'null' ),
+					'items' => array( 'type' => array( 'string', 'number', 'boolean', 'object', 'null' ) ),
 				),
 			),
 			'required' => array( 'post_id', 'meta_key', 'meta_value' ),
