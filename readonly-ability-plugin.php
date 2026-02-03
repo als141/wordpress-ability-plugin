@@ -3,7 +3,7 @@
  * Plugin Name:       WordPress MCP Ability Suite
  * Plugin URI:        https://github.com/als141/wordpress-mcp-ability-plugin
  * Description:       Expose WordPress content operations to AI agents via Model Context Protocol (MCP) with app authentication support.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Author:            als141
  * Author URI:        https://profiles.wordpress.org/als141/
  * License:           GPL-2.0-or-later
@@ -146,7 +146,7 @@ if ( class_exists( '\\WP\\MCP\\Core\\McpAdapter' ) ) {
 }
 
 if ( ! defined( 'WP_MCP_PLUGIN_VERSION' ) ) {
-	define( 'WP_MCP_PLUGIN_VERSION', '1.1.1' );
+	define( 'WP_MCP_PLUGIN_VERSION', '1.1.2' );
 }
 if ( ! defined( 'WP_MCP_ABILITY_PREFIX' ) ) {
 	define( 'WP_MCP_ABILITY_PREFIX', 'wp-mcp' );

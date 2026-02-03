@@ -102,7 +102,7 @@ wordpress-ability-plugin/
 ## Constants
 | 定数 | 値 | 定義場所 |
 |------|---|---------|
-| `WP_MCP_PLUGIN_VERSION` | `'1.1.1'` | readonly-ability-plugin.php |
+| `WP_MCP_PLUGIN_VERSION` | `'1.1.2'` | readonly-ability-plugin.php |
 | `WP_MCP_ABILITY_PREFIX` | `'wp-mcp'` | readonly-ability-plugin.php |
 
 ## MCP Tools (25個)
@@ -412,6 +412,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
+| 2026-02-03 | 1.1.1 → 1.1.2 | `update-post-meta` ツールの `meta_value` スキーマに `items` を追加。OpenAI API の `array schema missing items` エラーを修正 |
 | 2026-02-02 | docs | `docs/SAAS_INTEGRATION.md` を削除し、`docs/APP_INTEGRATION.md` を新規作成。接続URL方式、ローカルツールラッパー方式（海外IPアクセス制限対策）、全33アビリティ完全リファレンス、MCP クライアント実装例を記載 |
 | 2026-02-02 | 1.0.2 → 1.1.0 | 複数アプリ連携対応。接続URL方式（アプリURL入力不要）。単一接続→複数名前付き連携。「SaaS」→「アプリ」UI変更。API キー上限5→20。レガシーデータ自動マイグレーション。接続状態ポーリング REST エンドポイント追加 |
 | 2026-02-01 | 1.0.1 → 1.0.2 | `declare(strict_types=1)` を全 saas-auth ファイルでファイル先頭に移動（PHP fatal error 修正） |

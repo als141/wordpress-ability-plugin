@@ -4,7 +4,7 @@ Tags: mcp, ai, model-context-protocol, api, app-integration
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -117,6 +117,12 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 3. MCP server information - Endpoint URLs and site details
 
 == Changelog ==
+
+= 1.1.2 =
+* Fix: update-post-meta tool schema now includes `items` for array type (fixes OpenAI API "array schema missing items" error)
+
+= 1.1.1 =
+* Minor documentation and versioning fixes
 
 = 1.1.0 =
 * Feature: Support multiple named app connections (previously limited to single SaaS connection)
