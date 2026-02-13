@@ -624,6 +624,10 @@ function wp_mcp_register_tools() {
 			'properties' => array(
 				'title' => array( 'type' => 'string' ),
 				'content' => array( 'type' => 'string' ),
+				'post_type' => array(
+					'type'    => 'string',
+					'default' => 'post',
+				),
 				'category_ids' => array(
 					'type'  => 'array',
 					'items' => array( 'type' => 'integer' ),
@@ -653,9 +657,16 @@ function wp_mcp_register_tools() {
 			$title   = isset( $input['title'] ) ? wp_strip_all_tags( (string) $input['title'] ) : '';
 			$content = isset( $input['content'] ) ? (string) $input['content'] : '';
 			$excerpt = isset( $input['excerpt'] ) ? (string) $input['excerpt'] : '';
+			$post_type = isset( $input['post_type'] ) ? sanitize_key( $input['post_type'] ) : 'post';
+			if ( '' === $post_type ) {
+				$post_type = 'post';
+			}
 
 			if ( '' === $title || '' === $content ) {
 				return new WP_Error( 'invalid_input', 'title and content are required.' );
+			}
+			if ( ! post_type_exists( $post_type ) ) {
+				return new WP_Error( 'invalid_post_type', 'post_type not found.' );
 			}
 
 			$post_id = wp_insert_post(
@@ -664,7 +675,7 @@ function wp_mcp_register_tools() {
 					'post_content' => $content,
 					'post_excerpt' => $excerpt,
 					'post_status'  => 'draft',
-					'post_type'    => 'post',
+					'post_type'    => $post_type,
 					'post_author'  => get_current_user_id(),
 				),
 				true
