@@ -413,6 +413,7 @@ async def wp_get_posts_by_category(
 async def wp_create_draft_post(
     title: str,
     content: str,
+    post_type: str | None = None,
     category_ids: list[int] | None = None,
     tag_ids: list[int] | None = None,
     excerpt: str | None = None,
@@ -422,11 +423,14 @@ async def wp_create_draft_post(
     Args:
         title: 記事タイトル
         content: ブロックHTML形式のコンテンツ
+        post_type: 投稿タイプ（未指定時は post）
         category_ids: カテゴリIDの配列
         tag_ids: タグIDの配列
         excerpt: 抜粋
     """
     args = {"title": title, "content": content}
+    if post_type is not None:
+        args["post_type"] = post_type
     if category_ids is not None:
         args["category_ids"] = category_ids
     if tag_ids is not None:
@@ -780,6 +784,7 @@ Gutenberg ブロック HTML で新規下書きを作成します。
 |-----------|-----|------|------|
 | `title` | string | Yes | 記事タイトル |
 | `content` | string | Yes | ブロック HTML コンテンツ |
+| `post_type` | string | No | 投稿タイプ (未指定時 `post`) |
 | `category_ids` | array\<int\> | No | カテゴリ ID 配列 |
 | `tag_ids` | array\<int\> | No | タグ ID 配列 |
 | `excerpt` | string | No | 抜粋 |
