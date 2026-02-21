@@ -18,10 +18,6 @@ function wp_mcp_register_categories() {
 			'label'       => 'Content Management',
 			'description' => 'Create, update, publish, and delete content.',
 		),
-		'validation' => array(
-			'label'       => 'Validation',
-			'description' => 'Validate blocks, regulations, and SEO requirements.',
-		),
 		'media'      => array(
 			'label'       => 'Media',
 			'description' => 'Search and manage media assets.',

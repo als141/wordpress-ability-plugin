@@ -102,10 +102,10 @@ wordpress-ability-plugin/
 ## Constants
 | 定数 | 値 | 定義場所 |
 |------|---|---------|
-| `WP_MCP_PLUGIN_VERSION` | `'1.1.2'` | readonly-ability-plugin.php |
+| `WP_MCP_PLUGIN_VERSION` | `'1.2.0'` | readonly-ability-plugin.php |
 | `WP_MCP_ABILITY_PREFIX` | `'wp-mcp'` | readonly-ability-plugin.php |
 
-## MCP Tools (25個)
+## MCP Tools (22個)
 
 ### 分析ツール (Analysis)
 | ツール名 | パラメータ | 権限 | 概要 |
@@ -132,13 +132,6 @@ wordpress-ability-plugin/
 | `wp-mcp/update-post-meta` | `post_id` (必須), `meta_key` (必須), `meta_value` (必須) | edit_post_meta | メタデータ更新 |
 | `wp-mcp/publish-post` | `post_id` (必須), `scheduled_time` | publish_posts | 公開・予約投稿 |
 | `wp-mcp/delete-post` | `post_id` (必須), `force` | delete_posts | 削除・ゴミ箱 |
-
-### バリデーションツール (Validation)
-| ツール名 | パラメータ | 権限 | 概要 |
-|----------|-----------|------|------|
-| `wp-mcp/validate-block-content` | `content` (必須) | read | ブロック構文検証 |
-| `wp-mcp/check-regulation-compliance` | `content` (必須), `category_id` (必須) | read | 規約準拠チェック |
-| `wp-mcp/check-seo-requirements` | `content` (必須), `target_keywords`, `title` | read | SEO 要件チェック |
 
 ### メディアツール (Media)
 | ツール名 | パラメータ | 権限 | 概要 |
@@ -412,6 +405,7 @@ SaaS 側のクライアント実装 (`wordpress_mcp_service.py`):
 
 | 日付 | バージョン | 内容 |
 |------|-----------|------|
+| 2026-02-21 | 1.1.2 → 1.2.0 | バリデーションツール3個削除 (validate-block-content, check-regulation-compliance, check-seo-requirements)。管理画面UI簡素化: 連携ネーム入力廃止→日時+アプリ名自動生成、技術情報をdetails/summaryトグルに隠蔽、「利用可能な機能」セクション削除 |
 | 2026-02-03 | 1.1.1 → 1.1.2 | `update-post-meta` ツールの `meta_value` スキーマに `items` を追加。OpenAI API の `array schema missing items` エラーを修正 |
 | 2026-02-02 | docs | `docs/SAAS_INTEGRATION.md` を削除し、`docs/APP_INTEGRATION.md` を新規作成。接続URL方式、ローカルツールラッパー方式（海外IPアクセス制限対策）、全33アビリティ完全リファレンス、MCP クライアント実装例を記載 |
 | 2026-02-02 | 1.0.2 → 1.1.0 | 複数アプリ連携対応。接続URL方式（アプリURL入力不要）。単一接続→複数名前付き連携。「SaaS」→「アプリ」UI変更。API キー上限5→20。レガシーデータ自動マイグレーション。接続状態ポーリング REST エンドポイント追加 |

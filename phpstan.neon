@@ -14,5 +14,4 @@ parameters:
 	ignoreErrors:
 		- identifier: arrayValues.list
 		- identifier: return.unusedType
-		- identifier: isset.offset
 		- identifier: booleanNot.alwaysTrue

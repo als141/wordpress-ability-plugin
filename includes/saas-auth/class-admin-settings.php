@@ -245,12 +245,8 @@ class Admin_Settings {
 
 		// Handle generate connection URL action.
 		if ( isset( $_POST['wp_mcp_generate'] ) && check_admin_referer( 'wp_mcp_generate' ) ) {
-			$connection_name = sanitize_text_field( wp_unslash( $_POST['connection_name'] ?? '' ) );
-
-			if ( empty( $connection_name ) ) {
-				add_settings_error( 'wp_mcp', 'error', '連携ネームを入力してください。', 'error' );
-				return;
-			}
+			// Auto-generate connection name from datetime.
+			$connection_name = date_i18n( 'Y/m/d H:i' );
 
 			// Ensure auth is enabled before generating.
 			$this->ensure_auth_enabled();
@@ -319,16 +315,18 @@ class Admin_Settings {
 		delete_option( self::REGISTRATION_CODE_OPTION );
 
 		$connection_id   = $stored_data['connection_id'] ?? wp_generate_uuid4();
-		$connection_name = $stored_data['connection_name'] ?? ( $saas_identifier ?? 'Unknown' );
+		$connection_name = $stored_data['connection_name'] ?? date_i18n( 'Y/m/d H:i' );
 		$user_id         = (int) ( $stored_data['user_id'] ?? 0 );
+
+		// Append app name to connection name if provided.
+		if ( ! empty( $saas_identifier ) ) {
+			$connection_name = sprintf( '%s (%s)', $connection_name, $saas_identifier );
+		}
 
 		// Ensure auth is enabled and create credentials.
 		$this->ensure_auth_enabled();
 
 		$api_key_name = $connection_name;
-		if ( ! empty( $saas_identifier ) ) {
-			$api_key_name = sprintf( '%s (%s)', $connection_name, $saas_identifier );
-		}
 		$credentials = $this->create_connection_credentials( $user_id, $connection_id, $api_key_name );
 
 		if ( is_wp_error( $credentials ) ) {
@@ -683,7 +681,7 @@ class Admin_Settings {
 				$status_endpoint   = rest_url( 'wp-mcp/v1/connection-status/' . $connection_id );
 				?>
 				<div class="wp-mcp-card">
-					<h2>接続URL — <?php echo esc_html( $pending['connection_name'] ?? '' ); ?></h2>
+					<h2>接続URL</h2>
 
 					<div class="wp-mcp-pending-box">
 						<p class="wp-mcp-pending-label">この接続URLをアプリに貼り付けてください:</p>
@@ -694,22 +692,25 @@ class Admin_Settings {
 							</button>
 						</div>
 
-						<div class="wp-mcp-pending-info">
-							<table class="wp-mcp-info-table">
-								<tr>
-									<th>サイト URL</th>
-									<td><code><?php echo esc_html( get_site_url() ); ?></code></td>
-								</tr>
-								<tr>
-									<th>MCP エンドポイント</th>
-									<td><code><?php echo esc_html( $mcp_endpoint ); ?></code></td>
-								</tr>
-								<tr>
-									<th>登録エンドポイント</th>
-									<td><code><?php echo esc_html( $register_endpoint ); ?></code></td>
-								</tr>
-							</table>
-						</div>
+						<details class="wp-mcp-details">
+							<summary>詳細情報を表示</summary>
+							<div class="wp-mcp-pending-info" style="margin-top: 8px;">
+								<table class="wp-mcp-info-table">
+									<tr>
+										<th>サイト URL</th>
+										<td><code><?php echo esc_html( get_site_url() ); ?></code></td>
+									</tr>
+									<tr>
+										<th>MCP エンドポイント</th>
+										<td><code><?php echo esc_html( $mcp_endpoint ); ?></code></td>
+									</tr>
+									<tr>
+										<th>登録エンドポイント</th>
+										<td><code><?php echo esc_html( $register_endpoint ); ?></code></td>
+									</tr>
+								</table>
+							</div>
+						</details>
 
 						<div class="wp-mcp-pending-status" id="wp-mcp-pending-status">
 							<span class="dashicons dashicons-update wp-mcp-spin"></span>
@@ -775,25 +776,10 @@ class Admin_Settings {
 			<?php else : ?>
 				<div class="wp-mcp-card">
 					<h2>新しい連携を追加</h2>
+					<p>接続URLを生成して、連携したいアプリに貼り付けてください。</p>
 					<form method="post">
 						<?php wp_nonce_field( 'wp_mcp_generate' ); ?>
-						<table class="form-table">
-							<tr>
-								<th scope="row">
-									<label for="connection_name">連携ネーム</label>
-								</th>
-								<td>
-									<input type="text" id="connection_name" name="connection_name"
-										   class="regular-text"
-										   placeholder="例: マーケティング連携"
-										   required>
-									<p class="description">
-										この連携を識別するための名前を入力してください。
-									</p>
-								</td>
-							</tr>
-						</table>
-						<p class="submit">
+						<p class="submit" style="margin-top: 8px;">
 							<button type="submit" name="wp_mcp_generate" class="button button-primary button-hero">
 								接続URLを生成する
 							</button>
@@ -803,39 +789,31 @@ class Admin_Settings {
 			<?php endif; ?>
 
 			<div class="wp-mcp-card">
-				<h2>MCP サーバー情報</h2>
-				<table class="wp-mcp-info-table">
-					<tr>
-						<th>MCP エンドポイント</th>
-						<td>
-							<code><?php echo esc_html( $mcp_endpoint ); ?></code>
-							<button type="button" class="button button-small wp-mcp-copy" data-copy="<?php echo esc_attr( $mcp_endpoint ); ?>">
-								コピー
-							</button>
-						</td>
-					</tr>
-					<tr>
-						<th>サイト URL</th>
-						<td><code><?php echo esc_html( get_site_url() ); ?></code></td>
-					</tr>
-					<tr>
-						<th>サイト名</th>
-						<td><?php echo esc_html( get_bloginfo( 'name' ) ); ?></td>
-					</tr>
-				</table>
+				<details class="wp-mcp-details">
+					<summary><h2 style="display:inline; border-bottom:none; padding-bottom:0; margin:0;">MCP サーバー情報</h2></summary>
+					<table class="wp-mcp-info-table" style="margin-top: 12px;">
+						<tr>
+							<th>MCP エンドポイント</th>
+							<td>
+								<code><?php echo esc_html( $mcp_endpoint ); ?></code>
+								<button type="button" class="button button-small wp-mcp-copy" data-copy="<?php echo esc_attr( $mcp_endpoint ); ?>">
+									コピー
+								</button>
+							</td>
+						</tr>
+						<tr>
+							<th>サイト URL</th>
+							<td><code><?php echo esc_html( get_site_url() ); ?></code></td>
+						</tr>
+						<tr>
+							<th>サイト名</th>
+							<td><?php echo esc_html( get_bloginfo( 'name' ) ); ?></td>
+						</tr>
+					</table>
+				</details>
 			</div>
 
-			<div class="wp-mcp-card">
-				<h2>利用可能な機能</h2>
-				<p>連携が完了すると、アプリから以下の操作が可能になります：</p>
-				<ul class="wp-mcp-features">
-					<li><span class="dashicons dashicons-admin-post"></span> 記事の作成・編集・削除</li>
-					<li><span class="dashicons dashicons-admin-media"></span> メディアのアップロード・管理</li>
-					<li><span class="dashicons dashicons-category"></span> カテゴリ・タグの管理</li>
-					<li><span class="dashicons dashicons-admin-appearance"></span> テーマスタイル・ブロックパターンの取得</li>
-					<li><span class="dashicons dashicons-chart-line"></span> SEO チェック・コンテンツ検証</li>
-				</ul>
-			</div>
+	
 		</div>
 
 		<style>
@@ -898,19 +876,13 @@ class Admin_Settings {
 		.wp-mcp-copy {
 			margin-left: 8px !important;
 		}
-		.wp-mcp-features {
-			list-style: none;
-			padding: 0;
-			margin: 0;
-		}
-		.wp-mcp-features li {
-			padding: 8px 0;
-			display: flex;
-			align-items: center;
-			gap: 8px;
-		}
-		.wp-mcp-features .dashicons {
+		.wp-mcp-details summary {
+			cursor: pointer;
 			color: #0073aa;
+			font-size: 13px;
+		}
+		.wp-mcp-details summary:hover {
+			color: #005a87;
 		}
 		.button-hero {
 			padding: 12px 24px !important;

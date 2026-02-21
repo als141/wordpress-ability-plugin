@@ -4,7 +4,7 @@ Tags: mcp, ai, model-context-protocol, api, app-integration
 Requires at least: 6.0
 Tested up to: 6.9
 Requires PHP: 8.1
-Stable tag: 1.1.2
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,7 @@ This plugin registers WordPress abilities (tools, resources, and prompts) using 
 
 = Key Features =
 
-* **25+ MCP Tools** - Create, read, update, and delete posts, manage media, taxonomies, and more
+* **22 MCP Tools** - Create, read, update, and delete posts, manage media, taxonomies, and more
 * **4 MCP Resources** - Block schemas, style guides, category templates, writing regulations
 * **4 MCP Prompts** - Article generation, format conversion, SEO optimization, regulation learning
 * **Multiple App Connections** - Connect multiple external applications with named connections
@@ -31,7 +31,7 @@ This plugin registers WordPress abilities (tools, resources, and prompts) using 
 1. Install and activate the plugin
 2. The plugin registers WordPress abilities and starts an MCP server
 3. External AI agents or applications connect via the MCP endpoint
-4. Authenticated clients can create posts, manage media, check SEO, and more
+4. Authenticated clients can create posts, manage media, and more
 
 = Authentication Methods =
 
@@ -118,6 +118,13 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 
 == Changelog ==
 
+= 1.2.0 =
+* Remove: Validation tools removed (validate-block-content, check-regulation-compliance, check-seo-requirements) - too shallow to be useful, reduces token overhead
+* Remove: "利用可能な機能" section from admin UI
+* Change: Connection name auto-generated from datetime + app name (no manual input required)
+* Change: Technical details (URLs, MCP server info) hidden behind collapsible toggle
+* Change: Tool count reduced from 25 to 22
+
 = 1.1.2 =
 * Fix: update-post-meta tool schema now includes `items` for array type (fixes OpenAI API "array schema missing items" error)
 
@@ -156,7 +163,7 @@ WordPress 6.0 and higher. WordPress 6.9+ is recommended because the Abilities AP
 
 = 1.0.0 =
 * Initial release
-* 25+ MCP tools for WordPress content operations (posts, media, taxonomies, SEO)
+* 22 MCP tools for WordPress content operations (posts, media, taxonomies)
 * 4 MCP resources (block schemas, style guides, category templates, writing regulations)
 * 4 MCP prompts (article generation, format conversion, SEO optimization, regulation learning)
 * One-click app connection with registration code exchange
